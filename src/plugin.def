@@ -1,0 +1,17 @@
+EXPORTS
+    BeforeExecuteWindow
+    IdentifyPlugIn
+    RegisterCallback
+    OnCreate
+    OnActivate
+    OnDeactivate
+    OnDestroy
+    OnWindowChange
+    OnWindowCreated
+    OnWindowClose
+    OnWindowConnectionChange
+    OnConnectionChange
+    CreateMenuItem
+    OnMenuClick
+    Configure
+    About

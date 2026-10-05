@@ -1,0 +1,36 @@
+#include <windows.h>
+101 DIALOGEX 0, 0, 360, 403
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "PL/SQL ActivityWatch - Settings"
+FONT 9, "Segoe UI"
+BEGIN
+    CONTROL "Enable tracking",120,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,12,115,14
+    CONTROL "Pause tracking",121,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,12,125,14
+    CONTROL "Send to local ActivityWatch",127,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,34,180,14
+    LTEXT "Port:",-1,200,37,30,12
+    EDITTEXT 115,235,31,70,18,ES_NUMBER
+    CONTROL "Send to WakaTime (cloud)",129,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,58,210,14
+    LTEXT "WakaTime API key:",-1,12,82,110,12
+    EDITTEXT 130,125,78,223,20,ES_PASSWORD | ES_AUTOHSCROLL
+    LTEXT "Key is stored in Windows Credential Manager.",-1,12,104,336,12
+    LTEXT "Heartbeat (seconds)",-1,12,129,140,12
+    EDITTEXT 111,175,126,70,18,ES_NUMBER
+    LTEXT "Idle timeout (seconds)",-1,12,155,140,12
+    EDITTEXT 112,175,152,70,18,ES_NUMBER
+    CONTROL "Include file paths",122,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,180,155,14
+    CONTROL "Include object owner/name",123,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,180,173,14
+    CONTROL "Include database/TNS alias (ActivityWatch and local history)",124,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,200,336,14
+    CONTROL "Save local activity files (JSONL, optional exports)",128,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,226,336,14
+    LTEXT "History directory:",-1,12,248,150,12
+    EDITTEXT 110,12,262,336,20,ES_AUTOHSCROLL
+    LTEXT "Rotate at (MB)",-1,12,295,90,12
+    EDITTEXT 113,100,291,55,18,ES_NUMBER
+    LTEXT "Retain (days)",-1,180,295,85,12
+    EDITTEXT 114,265,291,70,18,ES_NUMBER
+    CONTROL "Export CSV",125,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,320,120,14
+    CONTROL "Export ICS",126,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,320,120,14
+    LTEXT "Local activity files off = no JSONL, CSV, ICS or activity logs.",-1,12,344,336,12
+    LTEXT "SQL text and database credentials are never sent or logged.",-1,12,359,336,12
+    DEFPUSHBUTTON "Save",IDOK,195,378,72,20
+    PUSHBUTTON "Cancel",IDCANCEL,276,378,72,20
+END
