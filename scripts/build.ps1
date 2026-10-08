@@ -10,7 +10,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $commands=@(
     "call `"$developer`" -arch=$Platform -host_arch=x64 >nul",
     "rc /nologo /fo plugin.res `"$root\src\plugin.rc`"",
-    "cl /nologo /std:c++17 /EHsc /W4 /WX /MT /O2 /DUNICODE /D_UNICODE /LD `"$root\src\core.cpp`" `"$root\src\settings.cpp`" `"$root\src\plugin.cpp`" plugin.res /link /DEF:`"$root\src\plugin.def`" /OUT:PLSQLActivity.dll /IMPLIB:PLSQLActivity.lib user32.lib gdi32.lib shell32.lib ole32.lib advapi32.lib winhttp.lib"
+    "cl /nologo /std:c++17 /EHsc /W4 /WX /MT /O2 /DUNICODE /D_UNICODE /LD `"$root\src\core.cpp`" `"$root\src\settings.cpp`" `"$root\src\plugin.cpp`" plugin.res /link /DEF:`"$root\src\plugin.def`" /OUT:ActivityTracker.dll /IMPLIB:PLSQLActivity.lib user32.lib gdi32.lib shell32.lib ole32.lib advapi32.lib winhttp.lib"
 )
 if($Test) {
     $commands+="cl /nologo /std:c++17 /EHsc /W4 /WX /MT /O2 /DUNICODE /D_UNICODE /DACTIVITY_TEST /LD `"$root\src\core.cpp`" `"$root\src\settings.cpp`" `"$root\src\plugin.cpp`" plugin.res /link /DEF:`"$root\src\plugin.def`" /OUT:PLSQLActivity-test.dll /IMPLIB:PLSQLActivity-test.lib user32.lib gdi32.lib shell32.lib ole32.lib advapi32.lib winhttp.lib"
@@ -30,12 +30,12 @@ try { & cmd.exe /d /c $batch; if($LASTEXITCODE){throw "Build/test failed: $LASTE
 if($Package) {
     $dist=Join-Path $root 'dist'
     New-Item -ItemType Directory -Force $dist | Out-Null
-    $stage=Join-Path $out 'package-1.1'
+    $stage=Join-Path $out 'package-1.2'
     $stageDocs=Join-Path $stage 'docs'
     New-Item -ItemType Directory -Force $stageDocs | Out-Null
-    Copy-Item -LiteralPath (Join-Path $out 'PLSQLActivity.dll'),(Join-Path $root 'README.md'),(Join-Path $root 'LICENSE') -Destination $stage -Force
+    Copy-Item -LiteralPath (Join-Path $out 'ActivityTracker.dll'),(Join-Path $root 'README.md'),(Join-Path $root 'LICENSE') -Destination $stage -Force
     foreach($name in 'SCHEMA.md','SDK.md','VALIDATION.md') {
         Copy-Item -LiteralPath (Join-Path $root "docs\$name") -Destination $stageDocs -Force
     }
-    Compress-Archive -Path "$stage\*" -DestinationPath (Join-Path $dist "PLSQLActivity-$Platform.zip") -Force
+    Compress-Archive -Path "$stage\*" -DestinationPath (Join-Path $dist "ActivityTracker-$Platform.zip") -Force
 }

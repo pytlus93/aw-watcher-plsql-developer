@@ -1,10 +1,10 @@
-# PL/SQL ActivityWatch plugin 1.1
+# ActivityTracker for PL/SQL Developer 1.2
 
 A native Allround Automations PL/SQL Developer watcher, written independently from the official installed SDK. No den-kozlov/PLSQLDeveloperWakatime implementation was used.
 
 ## Update or install
 
-Close PL/SQL Developer, extract the matching x64/x86 ZIP, and replace `PLSQLActivity.dll` in the IDE's `PlugIns` directory. Restart the IDE. Enable **PL/SQL Local Activity (v1)** in the plug-in manager and open Configure, or **Plug-Ins → ActivityWatch → Settings**. The existing plug-in identity is retained for upgrades. Before version 12, use **Tools → ActivityWatch → Settings**.
+Close PL/SQL Developer, extract the matching x64/x86 ZIP, and install `ActivityTracker.dll` in the IDE's `PlugIns` directory. Restart the IDE. Enable **ActivityTracker** in the plug-in manager and open Configure, or **Plug-Ins → ActivityTracker → Settings**. For an upgrade, close the IDE and remove the old `PLSQLActivity.dll` from PlugIns before installing ActivityTracker.dll; keeping both would load duplicate producers. Existing configuration and credentials keep their legacy PLSQLActivity storage names. Before version 12, use **Tools → ActivityTracker → Settings**.
 
 ## ActivityWatch only
 

@@ -36,7 +36,7 @@ using GetText=char*(__cdecl*)();
 using GetObject=BOOL(__cdecl*)(char**,char**,char**,char**);
 using GetConnection=BOOL(__cdecl*)(int,char**,char**,char**,char**);
 int64_t now() { return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(); }
-void error(const wchar_t* message) { MessageBoxW(mainWindow,message,L"PL/SQL Local Activity",MB_OK|MB_ICONERROR); }
+void error(const wchar_t* message) { MessageBoxW(mainWindow,message,L"ActivityTracker",MB_OK|MB_ICONERROR); }
 
 // Only the storage worker owns WinHTTP handles. It never uses host callbacks.
 void startWorker() {
@@ -133,7 +133,7 @@ void configure() {
 }
 }
 extern "C" {
-char* __cdecl IdentifyPlugIn(int) { return const_cast<char*>("PL/SQL Local Activity (v1)"); }
+char* __cdecl IdentifyPlugIn(int) { return const_cast<char*>("ActivityTracker"); }
 void __cdecl RegisterCallback(int index,void* address) { if(index>=0&&index<254) callbacks[index]=address; }
 void __cdecl OnCreate() { /* Host callbacks are deliberately unused until OnActivate. */ }
 void __cdecl OnActivate() {
@@ -191,13 +191,13 @@ int __cdecl OnWindowClose(int,BOOL) {
 char* __cdecl CreateMenuItem(int index) {
     auto version=cb<GetInt>(1);bool ribbon=version&&version()>=1200;
     // Without TAB=, the SDK places the group in the existing Plug-Ins ribbon.
-    if(index==1) return const_cast<char*>(ribbon?"GROUP=ActivityWatch":"Tools / ActivityWatch / -");
-    if(index==2) return const_cast<char*>(ribbon?"ITEM=Settings":"Tools / ActivityWatch / Settings");
+    if(index==1) return const_cast<char*>(ribbon?"GROUP=ActivityTracker":"Tools / ActivityTracker / -");
+    if(index==2) return const_cast<char*>(ribbon?"ITEM=Settings":"Tools / ActivityTracker / Settings");
     return const_cast<char*>("");
 }
 void __cdecl OnMenuClick(int index) {if(index==2) configure();}
 void __cdecl Configure() {configure();}
-char* __cdecl About() {return const_cast<char*>("PL/SQL ActivityWatch 1.1\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
+char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.2\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
 }
 BOOL WINAPI DllMain(HINSTANCE instance,DWORD reason,LPVOID) {
     if(reason==DLL_PROCESS_ATTACH) moduleInstance=instance;return TRUE;
