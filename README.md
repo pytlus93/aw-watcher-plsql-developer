@@ -4,7 +4,7 @@ A native Allround Automations PL/SQL Developer watcher, written independently fr
 
 ## Update or install
 
-Close PL/SQL Developer, extract the matching x64/x86 ZIP, and replace `PLSQLActivity.dll` in the IDE's `PlugIns` directory. Restart the IDE. Enable **PL/SQL Local Activity (v1)** in the plug-in manager and open Configure, or **Local Activity → Recording → Settings**. The existing plug-in identity is retained for upgrades.
+Close PL/SQL Developer, extract the matching x64/x86 ZIP, and replace `PLSQLActivity.dll` in the IDE's `PlugIns` directory. Restart the IDE. Enable **PL/SQL Local Activity (v1)** in the plug-in manager and open Configure, or **Plug-Ins → ActivityWatch → Settings**. The existing plug-in identity is retained for upgrades. Before version 12, use **Tools → ActivityWatch → Settings**.
 
 ## ActivityWatch only
 

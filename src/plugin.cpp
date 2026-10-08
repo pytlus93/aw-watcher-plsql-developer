@@ -190,12 +190,12 @@ int __cdecl OnWindowClose(int,BOOL) {
 }
 char* __cdecl CreateMenuItem(int index) {
     auto version=cb<GetInt>(1);bool ribbon=version&&version()>=1200;
-    if(index==1) return const_cast<char*>(ribbon?"TAB=Local Activity":"Local Activity");
-    if(index==2) return const_cast<char*>(ribbon?"GROUP=Recording":"Local Activity / Recording");
-    if(index==3) return const_cast<char*>(ribbon?"ITEM=Settings":"Local Activity / Recording / Settings");
+    // Without TAB=, the SDK places the group in the existing Plug-Ins ribbon.
+    if(index==1) return const_cast<char*>(ribbon?"GROUP=ActivityWatch":"Tools / ActivityWatch / -");
+    if(index==2) return const_cast<char*>(ribbon?"ITEM=Settings":"Tools / ActivityWatch / Settings");
     return const_cast<char*>("");
 }
-void __cdecl OnMenuClick(int index) {if(index==3) configure();}
+void __cdecl OnMenuClick(int index) {if(index==2) configure();}
 void __cdecl Configure() {configure();}
 char* __cdecl About() {return const_cast<char*>("PL/SQL ActivityWatch 1.1\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
 }
