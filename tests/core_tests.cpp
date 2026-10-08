@@ -90,6 +90,26 @@ int main() {
         check(count(records(stalled.directory),"\"type\":\"gap\"")==2,"queue overflow explicitly splits");
         check(quote("\t\"\\")=="\"\\u0009\\\"\\\\\"","JSON escaping");
         check(utc(base).find("Z")!=std::string::npos,"UTC timestamp");
+        auto titlePulse=[&](Settings config,Context value) {
+            config.history=false;std::string result;Engine engine(config);
+            engine.heartbeatDelivery=[&](const std::string& body){result=body;};
+            engine.sample({base,1000,true,false,value});engine.stop(base+1000,"test");return result;
+        };
+        Context titled;titled.window="title-test";titled.file="C:\\synthetic\\demo.sql";
+        titled.owner="SYNTHETIC";titled.objectName="ORDERS";titled.connection="TEST_ALIAS";
+        Settings titles;titles.connection=true;
+        check(titlePulse(titles,titled).find("\"title\":\"demo.sql - SYNTHETIC.ORDERS @ TEST_ALIAS\"")!=std::string::npos,"readable title from enabled metadata");
+        titles.files=false;titles.objects=false;titles.connection=false;
+        auto privatePulse=titlePulse(titles,titled);
+        check(privatePulse.find("\"title\":\"Activity (context unavailable)\"")!=std::string::npos,"neutral title after privacy redaction");
+        check(privatePulse.find("demo.sql")==std::string::npos&&privatePulse.find("ORDERS")==std::string::npos&&privatePulse.find("TEST_ALIAS")==std::string::npos,"disabled metadata absent from delivered title and fields");
+        titles.objects=true;titled.objectType="SQL_REFERENCE";
+        check(titlePulse(titles,titled).find("References (inferred): ORDERS")!=std::string::npos,"title labels inferred identifiers");
+        titled.objectType.clear();titled.owner.clear();titled.objectName=std::string(1024,'X');
+        check(titlePulse(titles,titled).find("\"title\":\""+std::string(237,'X')+"...\"")!=std::string::npos,"long metadata produces a concise title");
+        titled.objectName.clear();for(int i=0;i<125;i++)titled.objectName+=u8"\u011B";
+        std::string clipped;for(int i=0;i<118;i++)clipped+=u8"\u011B";
+        check(titlePulse(titles,titled).find("\"title\":\""+clipped+"...\"")!=std::string::npos,"title truncation preserves UTF-8");
         Settings noFiles;noFiles.directory=root/"must-not-exist";
         noFiles.csv=true;noFiles.ics=true;int pulses=0;
         Engine networkOnly(noFiles);networkOnly.heartbeatDelivery=[&](const std::string&){++pulses;};

@@ -6,6 +6,7 @@
 #include <random>
 #include <stdexcept>
 #include <tuple>
+#include <algorithm>
 #define NOMINMAX
 #include <windows.h>
 
@@ -126,8 +127,26 @@ void Journal::exportInterval(const std::string& id, int64_t start, int64_t end, 
     }
 }
 static std::string data(const Context& c) {
+    std::string title;
+    if(!c.file.empty()) title=c.file.substr(c.file.find_last_of("/\\")==std::string::npos?0:c.file.find_last_of("/\\")+1);
+    if(!c.objectName.empty()) {
+        if(!title.empty()) title+=" - ";
+        if(c.objectType=="SQL_REFERENCE") title+="References (inferred): ";
+        else if(!c.owner.empty()) title+=c.owner+".";
+        title+=c.objectName;
+    }
+    if(!c.connection.empty()) {if(!title.empty()) title+=" @ ";title+=c.connection;}
+    if(title.empty()) title="Activity (context unavailable)";
+    for(char& ch:title) if(static_cast<unsigned char>(ch)<32) ch=' ';
+    if(title.size()>240) {
+        size_t end=237;
+        while(end>0&&(static_cast<unsigned char>(title[end])&0xc0)==0x80) --end;
+        title=title.substr(0,end)+"...";
+    }
+    auto file=c.file;std::replace(file.begin(),file.end(),'\\','/');
     return "{\"app\":\"PL/SQL Developer\",\"language\":\"PL/SQL\",\"window_id\":" + quote(c.window) +
-        ",\"window_type\":" + std::to_string(c.windowType) + ",\"file\":" + quote(c.file) +
+        ",\"title\":" + quote(title) +
+        ",\"window_type\":" + std::to_string(c.windowType) + ",\"file\":" + quote(file) + ",\"project\":\"\"" +
         ",\"object_type\":" + quote(c.objectType) + ",\"object_owner\":" + quote(c.owner) +
         ",\"object_name\":" + quote(c.objectName) + ",\"connection_alias\":" + quote(c.connection) + "}";
 }

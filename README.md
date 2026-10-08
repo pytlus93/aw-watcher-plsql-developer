@@ -19,7 +19,7 @@ ActivityWatch uses `aw-watcher-plsql_<Windows computer name>` and the same real 
 
 Unsaved SQL worksheets have distinct window IDs and no fabricated file path. On execution, the adapter reads the selected SQL, or the worksheet text when nothing is selected, transiently on the IDE thread. It extracts FROM/JOIN/UPDATE/INTO references and discards SQL text. Only names are transmitted, marked `SQL_REFERENCE`; tables and views cannot be distinguished without database queries. Comments, ordinary literals, Oracle q literals and CTE aliases are excluded. This conservative parser is not a complete Oracle parser: comma joins, dynamic SQL, table functions and very large scripts may have missing context. With no selection, references can include other statements in the worksheet. Disable **Include object owner/name** to prevent this reading and extraction.
 
-The connection field is the SDK's database/TNS string, not the connection-list display label. Program windows use the native object callback. SQL contents, database usernames/passwords and titles are never transmitted or written to activity files.
+The connection field is the SDK's database/TNS string, not the connection-list display label. Program windows use the native object callback. SQL contents and database usernames/passwords are never transmitted or written to activity files. Every AW event includes a readable title derived only from enabled metadata, with no application-name prefix.
 
 ## WakaTime
 
