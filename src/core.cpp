@@ -131,11 +131,16 @@ static std::string data(const Context& c) {
     if(!c.file.empty()) title=c.file.substr(c.file.find_last_of("/\\")==std::string::npos?0:c.file.find_last_of("/\\")+1);
     if(!c.objectName.empty()) {
         if(!title.empty()) title+=" - ";
-        if(c.objectType=="SQL_REFERENCE") title+="References (inferred): ";
-        else if(!c.owner.empty()) title+=c.owner+".";
+        if(c.objectType!="SQL_REFERENCE"&&!c.owner.empty()) title+=c.owner+".";
         title+=c.objectName;
     }
-    if(!c.connection.empty()) {if(!title.empty()) title+=" @ ";title+=c.connection;}
+    auto connection=c.connection;
+    if(connection.size()>6) {
+        auto suffix=connection.substr(connection.size()-6);
+        for(char& ch:suffix) if(ch>='a'&&ch<='z') ch=static_cast<char>(ch-'a'+'A');
+        if(suffix==".WORLD") connection.resize(connection.size()-6);
+    }
+    if(!connection.empty()) {if(!title.empty()) title+=" @ ";title+=connection;}
     if(title.empty()) title="Activity (context unavailable)";
     for(char& ch:title) if(static_cast<unsigned char>(ch)<32) ch=' ';
     if(title.size()>240) {

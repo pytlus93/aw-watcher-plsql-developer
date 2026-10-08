@@ -104,7 +104,16 @@ int main() {
         check(privatePulse.find("\"title\":\"Activity (context unavailable)\"")!=std::string::npos,"neutral title after privacy redaction");
         check(privatePulse.find("demo.sql")==std::string::npos&&privatePulse.find("ORDERS")==std::string::npos&&privatePulse.find("TEST_ALIAS")==std::string::npos,"disabled metadata absent from delivered title and fields");
         titles.objects=true;titled.objectType="SQL_REFERENCE";
-        check(titlePulse(titles,titled).find("References (inferred): ORDERS")!=std::string::npos,"title labels inferred identifiers");
+        check(titlePulse(titles,titled).find("\"title\":\"ORDERS\"")!=std::string::npos,"concise inferred object title");
+        titles.connection=true;titled.file.clear();titled.objectName="CPERSNC_EMPLASSIGN_R";titled.connection="AERO_Cloud_DEV1.WORLD";
+        auto exact=titlePulse(titles,titled);
+        check(exact.find("\"title\":\"CPERSNC_EMPLASSIGN_R @ AERO_Cloud_DEV1\"")!=std::string::npos,"requested object and connection title");
+        check(exact.find("\"connection_alias\":\"AERO_Cloud_DEV1.WORLD\"")!=std::string::npos&&exact.find("\"object_type\":\"SQL_REFERENCE\"")!=std::string::npos,"full connection and inferred provenance retained");
+        titled.connection="AERO_Cloud_DEV1.world";
+        check(titlePulse(titles,titled).find("\"title\":\"CPERSNC_EMPLASSIGN_R @ AERO_Cloud_DEV1\"")!=std::string::npos,"suffix matching is case insensitive");
+        titled.connection="AERO.WORLD.DEV";
+        check(titlePulse(titles,titled).find(" @ AERO.WORLD.DEV\"")!=std::string::npos,"internal domain text preserved");
+        titles.connection=false;
         titled.objectType.clear();titled.owner.clear();titled.objectName=std::string(1024,'X');
         check(titlePulse(titles,titled).find("\"title\":\""+std::string(237,'X')+"...\"")!=std::string::npos,"long metadata produces a concise title");
         titled.objectName.clear();for(int i=0;i<125;i++)titled.objectName+=u8"\u011B";
