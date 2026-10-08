@@ -10,6 +10,7 @@ class AW {
     int port;
     std::wstring bucket;
     std::string hostname;
+    std::string deliverySegment=newId();
     bool request(const wchar_t* verb,const std::wstring& path,const std::string& body,bool allowExisting=false) {
         if(!connection) return false;
         HINTERNET r=WinHttpOpenRequest(connection,verb,path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0);
@@ -39,7 +40,10 @@ public:
     void send(const std::string& payload,int pulse) {
         if(!bucketReady) bucketReady=request(L"POST",L"/api/0/buckets/"+bucket,
             "{\"client\":\"aw-watcher-plsql\",\"type\":\"app.editor.activity\",\"hostname\":"+quote(hostname)+"}",true);
-        if(bucketReady && !request(L"POST",L"/api/0/buckets/"+bucket+L"/heartbeat?pulsetime="+std::to_wstring(pulse),payload)) bucketReady=false;
+        // A failed delivery splits AW merging even when recovery occurs within pulsetime.
+        auto body=payload;body.insert(body.size()-2,",\"delivery_segment_id\":"+quote(deliverySegment));
+        if(bucketReady && !request(L"POST",L"/api/0/buckets/"+bucket+L"/heartbeat?pulsetime="+std::to_wstring(pulse),body)) bucketReady=false;
+        if(!bucketReady) deliverySegment=newId();
         // Delivery failures never enable file logging implicitly; retry on the next live pulse.
     }
 };
