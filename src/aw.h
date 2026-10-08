@@ -10,7 +10,7 @@ class AW {
     int port;
     std::wstring bucket;
     std::string hostname;
-    bool request(const wchar_t* verb,const std::wstring& path,const std::string& body) {
+    bool request(const wchar_t* verb,const std::wstring& path,const std::string& body,bool allowExisting=false) {
         if(!connection) return false;
         HINTERNET r=WinHttpOpenRequest(connection,verb,path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0);
         if(!r) return false;
@@ -19,7 +19,7 @@ class AW {
         if(ok) ok=WinHttpReceiveResponse(r,nullptr);
         DWORD status=0,n=sizeof(status);
         if(ok) ok=WinHttpQueryHeaders(r,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&n,WINHTTP_NO_HEADER_INDEX);
-        WinHttpCloseHandle(r);return ok&&status>=200&&status<300;
+        WinHttpCloseHandle(r);return ok&&((status>=200&&status<300)||(allowExisting&&status==304));
     }
 public:
     explicit AW(int p):port(p) {
@@ -38,7 +38,7 @@ public:
     ~AW() { if(connection) WinHttpCloseHandle(connection);if(session) WinHttpCloseHandle(session); }
     void send(const std::string& payload,int pulse) {
         if(!bucketReady) bucketReady=request(L"POST",L"/api/0/buckets/"+bucket,
-            "{\"client\":\"aw-watcher-plsql\",\"type\":\"app.editor.activity\",\"hostname\":"+quote(hostname)+"}");
+            "{\"client\":\"aw-watcher-plsql\",\"type\":\"app.editor.activity\",\"hostname\":"+quote(hostname)+"}",true);
         if(bucketReady && !request(L"POST",L"/api/0/buckets/"+bucket+L"/heartbeat?pulsetime="+std::to_wstring(pulse),payload)) bucketReady=false;
         // Delivery failures never enable file logging implicitly; retry on the next live pulse.
     }

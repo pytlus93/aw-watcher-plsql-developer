@@ -14,3 +14,6 @@ Windows Credential Manager read/write code is compiled but was not exercised wit
 An earlier GUI-based loopback run failed to receive pulses; the deliberate validation popup could interfere with foreground acquisition. The harness now waits for dismissal, rejects foreground-acquisition failure and excludes previous-run artifacts. Its revised interactive path has not been rerun. Headless core-to-network tests establish transport behavior independently.
 
 Test data are synthetic. Other topic directories and old AW buckets were not modified. Packages contain production DLLs only, without test endpoint overrides or a persistent offline queue.
+# Existing-bucket recovery correction (2026-10-08)
+
+The local AW server returned HTTP 304 when registering the existing PL/SQL bucket. The adapter previously accepted only 2xx responses, preventing heartbeats after a watcher restart. Bucket registration now accepts 304; heartbeat requests still require 2xx. The headless loopback regression returns 304 for registration and 503 for the first heartbeat, checking subsequent recovery. Both x64 and x86 builds passed 65 core assertions, 14 settings assertions and eight loopback assertions. Real-host receipt after installing this correction remains unverified. Activity from the missing period cannot be recovered when local history was disabled.

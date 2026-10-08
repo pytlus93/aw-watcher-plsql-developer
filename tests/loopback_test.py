@@ -20,14 +20,18 @@ class Handler(BaseHTTPRequestHandler):
         assert 'Authorization' not in self.headers
         requests.append((self.path, data))
         status = 200
+        if '/heartbeat?' not in self.path:
+            # AW returns 304 for a bucket retained from a previous watcher run.
+            status = 304
         if '/heartbeat?' in self.path and not failed_heartbeat:
             failed_heartbeat = True
             status = 503
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', '2')
+        self.send_header('Content-Length', '0' if status == 304 else '2')
         self.end_headers()
-        self.wfile.write(b'{}')
+        if status != 304:
+            self.wfile.write(b'{}')
 
     def log_message(self, *args):
         pass
