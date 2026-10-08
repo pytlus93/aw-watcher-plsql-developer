@@ -109,6 +109,10 @@ int main() {
         auto exact=titlePulse(titles,titled);
         check(exact.find("\"title\":\"CPERSNC_EMPLASSIGN_R @ AERO_Cloud_DEV1\"")!=std::string::npos,"requested object and connection title");
         check(exact.find("\"connection_alias\":\"AERO_Cloud_DEV1.WORLD\"")!=std::string::npos&&exact.find("\"object_type\":\"SQL_REFERENCE\"")!=std::string::npos,"full connection and inferred provenance retained");
+        check(exact.find("\"file\":\"CPERSNC_EMPLASSIGN_R\"")!=std::string::npos&&exact.find("\"project\":\"AERO_Cloud_DEV1\"")!=std::string::npos,"readable logical database context for editor tooltip");
+        check(exact.find("\"file_kind\":\"database_reference\"")!=std::string::npos,"virtual database label explicitly distinguished from path");
+        titled.windowType=1;
+        check(titlePulse(titles,titled).find("\"window_type_name\":\"SQL window\"")!=std::string::npos,"window type has its own readable field");
         titled.connection="AERO_Cloud_DEV1.world";
         check(titlePulse(titles,titled).find("\"title\":\"CPERSNC_EMPLASSIGN_R @ AERO_Cloud_DEV1\"")!=std::string::npos,"suffix matching is case insensitive");
         titled.connection="AERO.WORLD.DEV";

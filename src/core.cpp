@@ -149,9 +149,13 @@ static std::string data(const Context& c) {
         title=title.substr(0,end)+"...";
     }
     auto file=c.file;std::replace(file.begin(),file.end(),'\\','/');
+    const auto fileKind=!file.empty()?"path":!c.objectName.empty()?"database_reference":"unknown";
+    if(file.empty()) file=c.objectName;
+    const char* windowType="Unknown";
+    switch(c.windowType) {case 1:windowType="SQL window";break;case 2:windowType="Test window";break;case 3:windowType="Program window";break;case 4:windowType="Command window";break;case 5:windowType="Plan window";break;case 6:windowType="Report window";break;}
     return "{\"app\":\"PL/SQL Developer\",\"language\":\"PL/SQL\",\"window_id\":" + quote(c.window) +
         ",\"title\":" + quote(title) +
-        ",\"window_type\":" + std::to_string(c.windowType) + ",\"file\":" + quote(file) + ",\"project\":\"\"" +
+        ",\"window_type\":" + std::to_string(c.windowType) + ",\"window_type_name\":"+quote(windowType)+",\"file\":" + quote(file) + ",\"file_kind\":"+quote(fileKind)+",\"project\":"+quote(connection)+
         ",\"object_type\":" + quote(c.objectType) + ",\"object_owner\":" + quote(c.owner) +
         ",\"object_name\":" + quote(c.objectName) + ",\"connection_alias\":" + quote(c.connection) + "}";
 }
