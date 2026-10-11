@@ -1,0 +1,11 @@
+# ActivityTracker component guidance
+
+Apply the root AGENTS.md and keep changes within this independent checkout. Production deliverable is ActivityTracker.dll, loaded by PL/SQL Developer; executables in tests/build are synthetic harnesses. Do not install a live DLL, stop production processes, reboot or launch the interactive SDK/settings harness without explicit authorization.
+
+Consult docs/PAYLOAD.md for strict + workspace-title versus extended contracts, per-field permissions and v1 configuration migration. Redact object/owner/connection values before titles, virtual editor labels, WakaTime, JSONL/CSV/ICS. Optional disabled fields are omitted; required editor fields remain with unknown values. Preserve ledger identity separately from optional AW extensions. Do not infer action from foreground attention.
+
+Use `scripts/build.ps1 -Platform x64 -Test -SkipUI -Package` and x86. From each build directory run loopback_test.py --headless, aw_recovery_test.py (also --strict), and waka_loopback_test.py. Do not overlap tests using port 56661 or shared synthetic settings directories. installed_server_test.py accepts the installed aw-server.exe path, uses only synthetic data and verified memory storage in a testing server on 56663, and stops only its child processes. Keep harness artifacts under ignored build/. The installed AW binary may still use Windows-managed testing log/config locations; do not rely on app-data environment overrides to isolate its database.
+
+Preserve bucket-registration HTTP 304 handling only at creation, heartbeat rejection tests, actual resumed delivery, unmodified UTC times and no stale merge across gaps. Strict mode uses boundary pulsetime=0 rather than undeclared identity fields. Native emission order, installed server API order and GUI template rendering are different evidence; the editor tooltip currently hard-codes Filename/Path/Language.
+
+Document new fields/modes and validation limits. Editor-host restart/login, real credentials, revised Settings UI and production AW GUI need independent acceptance evidence; source inspection or harness process presence is insufficient. Use repository-local Filip Vrba <pytlus93@seznam.cz>, review intended files, commit coherent completed changes, and do not push without authorization.

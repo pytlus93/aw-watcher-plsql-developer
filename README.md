@@ -1,4 +1,4 @@
-# ActivityTracker for PL/SQL Developer 1.2
+# ActivityTracker for PL/SQL Developer 1.3
 
 A native Allround Automations PL/SQL Developer watcher, written independently from the official installed SDK. No den-kozlov/PLSQLDeveloperWakatime implementation was used.
 
@@ -10,14 +10,15 @@ Close PL/SQL Developer, extract the matching x64/x86 ZIP, and install `ActivityT
 
 - Enable **Send to local ActivityWatch**, normally port **5600**.
 - Turn **Save local activity files** off. This disables all JSONL, CSV, ICS, activity logs, directory probes and retention writes, even if export boxes were previously checked. Network failures do not turn logging back on.
-- Enable **Include file paths**, **Include object owner/name**, and **Include database/TNS alias** for useful editor/database context.
+- New settings use **strict + title**: saved path, unknown project, language and privacy-safe title only.
+- Enable **Extended payload** for logical database labels and choose each extra field; collection permissions still apply. Existing configurations migrate to extended mode with their existing privacy choices.
 - Keep heartbeat **15 seconds** and idle **300 seconds** initially.
 
 New installations default to ActivityWatch on and activity files off. Existing explicit destination/privacy settings are preserved. Settings themselves remain in `%LOCALAPPDATA%\PLSQLActivity\settings.ini`; that is configuration, not an activity log. Previously created activity files are not deleted automatically.
 
 ActivityWatch uses `aw-watcher-plsql_<Windows computer name>` and the same real computer name as bucket metadata. The old `_local` bucket is left untouched. Closing heartbeats give short focused intervals a duration. Delivery targets only 127.0.0.1 and never follows a cloud endpoint.
 
-Unsaved SQL worksheets have distinct window IDs and no fabricated file path. On execution, the adapter reads the selected SQL, or the worksheet text when nothing is selected, transiently on the IDE thread. It extracts FROM/JOIN/UPDATE/INTO references and discards SQL text. Only names are transmitted, marked `SQL_REFERENCE`; tables and views cannot be distinguished without database queries. Comments, ordinary literals, Oracle q literals and CTE aliases are excluded. This conservative parser is not a complete Oracle parser: comma joins, dynamic SQL, table functions and very large scripts may have missing context. With no selection, references can include other statements in the worksheet. Disable **Include object owner/name** to prevent this reading and extraction.
+Unsaved SQL worksheets have distinct window IDs and no fabricated file path. On execution, the adapter reads the selected SQL, or the worksheet text when nothing is selected, transiently on the IDE thread. It extracts FROM/JOIN/UPDATE/INTO references and discards SQL text. Only names are transmitted, marked `SQL_REFERENCE`; tables and views cannot be distinguished without database queries. Comments, ordinary literals, Oracle q literals and CTE aliases are excluded. This conservative parser is not a complete Oracle parser: comma joins, dynamic SQL, table functions and very large scripts may have missing context. With no selection, references can include other statements in the worksheet. Strict mode, disabling **Include object owner/name**, or disabling either **object_type** or **object_name** prevents this SQL-reference reading and extraction.
 
 The connection field is the SDK's database/TNS string, not the connection-list display label. Program windows use the native object callback. SQL contents and database usernames/passwords are never transmitted or written to activity files. Every AW event includes a readable title derived only from enabled metadata, with no application-name prefix.
 
@@ -48,3 +49,5 @@ Omit `-SkipUI` only for an explicit interactive settings/SDK test; it deliberate
 The reusable tracking core, native file adapter, SDK adapter, AW/WakaTime delivery adapters and native settings UI remain separate. The official 16.0.8 x64 SDK is installed; both architectures build. The user's 1.0 export confirms real ActivityWatch receipt, but new SQL-reference callbacks, credential storage, WakaTime account behavior and the revised host UI still require real-host validation. See [SDK findings](docs/SDK.md) and [validation](docs/VALIDATION.md).
 
 MIT license. No changes were made to other workspace projects.
+
+See [the complete field catalog, defaults and migration](docs/PAYLOAD.md). Standard fields are serialized before title and extensions; this does not control AW tooltip order. The installed editor tooltip explicitly renders Filename, Path and Language. Our v0.13.2 isolated-server validation reports actual API key order separately.
