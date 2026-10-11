@@ -24,7 +24,7 @@ int main() {
     try {
         const int64_t base=1791187200000;
         auto root=std::filesystem::current_path()/"synthetic-core"/newId();
-        Settings s;s.history=true;s.csv=true;s.ics=true;s.connection=false;s.directory=root;s.heartbeat=2;s.idle=10;
+        Settings s;s.extended=true;s.extraFields.fill(true);s.history=true;s.csv=true;s.ics=true;s.connection=false;s.directory=root;s.heartbeat=2;s.idle=10;
         Context c;c.window="worksheet-1";c.windowType=1;c.file="=synthetic,\"file\"\n.sql";c.objectName="TEST_OBJECT";c.owner="TEST_OWNER";c.connection="SYNTHETIC_TNS";
         std::vector<std::string> delivery;
         Engine e(s,"synthetic-session");e.heartbeatDelivery=[&](const std::string& p){delivery.push_back(p);};
@@ -97,7 +97,7 @@ int main() {
         };
         Context titled;titled.window="title-test";titled.file="C:\\synthetic\\demo.sql";
         titled.owner="SYNTHETIC";titled.objectName="ORDERS";titled.connection="TEST_ALIAS";
-        Settings titles;titles.connection=true;
+        Settings titles;titles.extended=true;titles.extraFields.fill(true);titles.connection=true;
         check(titlePulse(titles,titled).find("\"title\":\"demo.sql - SYNTHETIC.ORDERS @ TEST_ALIAS\"")!=std::string::npos,"readable title from enabled metadata");
         titles.files=false;titles.objects=false;titles.connection=false;
         auto privatePulse=titlePulse(titles,titled);
@@ -123,6 +123,24 @@ int main() {
         titled.objectName.clear();for(int i=0;i<125;i++)titled.objectName+=u8"\u011B";
         std::string clipped;for(int i=0;i<118;i++)clipped+=u8"\u011B";
         check(titlePulse(titles,titled).find("\"title\":\""+clipped+"...\"")!=std::string::npos,"title truncation preserves UTF-8");
+        Settings strict;titled.file="C:/synthetic/demo.sql";auto standard=titlePulse(strict,titled);
+        check(standard.find("\"data\":{\"file\":\"C:/synthetic/demo.sql\",\"project\":\"\",\"language\":\"PL/SQL\",\"title\":\"demo.sql\"}")!=std::string::npos,"strict official fields then workspace title, without object/connection leakage");
+        Settings provenance=titles;provenance.extraFields[ObjectType]=false;titled.objectType="SQL_REFERENCE";titled.objectName="PRIVATE_INFERRED_OBJECT";
+        check(titlePulse(provenance,titled).find("PRIVATE_INFERRED_OBJECT")==std::string::npos,"inferred identifiers withheld when provenance is disabled");
+        for(int field=0;field<ExtraFieldCount;field++) {
+            Settings selected;selected.extended=true;selected.extraFields.fill(true);selected.extraFields[field]=false;
+            auto body=titlePulse(selected,titled);
+            check(body.find("\""+std::string(extraFieldNames[field])+"\":")==std::string::npos,"disabled extension omitted");
+        }
+        Settings masked=s;masked.directory=root/"masked";masked.extraFields[App]=false;masked.extraFields[ObjectOwner]=false;masked.extraFields[ObjectName]=false;masked.extraFields[ConnectionAlias]=false;masked.extraFields[WindowId]=false;masked.connection=true;
+        Context hidden;hidden.window="PRIVATE_WINDOW";hidden.file="C:/synthetic/demo.sql";hidden.owner="PRIVATE_OWNER";hidden.objectName="PRIVATE_OBJECT";hidden.connection="PRIVATE_CONNECTION";
+        Engine maskedEngine(masked);std::string maskedDelivery;maskedEngine.heartbeatDelivery=[&](const std::string& value){maskedDelivery=value;};
+        maskedEngine.sample({base,1000,true,false,hidden});maskedEngine.stop(base+1000,"shutdown");
+        check(maskedDelivery.find("PRIVATE_")==std::string::npos,"disabled context absent from payload/title");
+        for(const auto& entry:std::filesystem::directory_iterator(masked.directory/"plsql-activity-v1")) {check(read(entry.path()).find("PRIVATE_")==std::string::npos,"disabled context absent from JSONL/CSV/ICS");check(read(entry.path()).find("PL/SQL Developer")==std::string::npos,"disabled app label absent from context/exports");}
+        Settings boundary;Engine boundaries(boundary);std::vector<bool> splits;boundaries.heartbeatDelivery=[&](const std::string&){splits.push_back(boundaries.deliveryBoundary);};
+        boundaries.sample({base,1000,true,false,hidden});boundaries.sample({base+1000,2000,false,false,hidden});boundaries.sample({base+2000,3000,true,false,hidden});
+        check(splits.size()==3&&splits[0]&&!splits[1]&&splits[2],"strict boundary signal closes and separates short focus gaps");
         Settings noFiles;noFiles.directory=root/"must-not-exist";
         noFiles.csv=true;noFiles.ics=true;int pulses=0;
         Engine networkOnly(noFiles);networkOnly.heartbeatDelivery=[&](const std::string&){++pulses;};

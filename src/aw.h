@@ -11,6 +11,7 @@ class AW {
     std::wstring bucket;
     std::string hostname;
     std::string deliverySegment=newId();
+    bool includeSegment, splitDelivery=true;
     bool request(const wchar_t* verb,const std::wstring& path,const std::string& body,bool allowExisting=false) {
         if(!connection) return false;
         HINTERNET r=WinHttpOpenRequest(connection,verb,path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0);
@@ -23,7 +24,7 @@ class AW {
         WinHttpCloseHandle(r);return ok&&((status>=200&&status<300)||(allowExisting&&status==304));
     }
 public:
-    explicit AW(int p):port(p) {
+    explicit AW(int p,bool segment=true):port(p),includeSegment(segment) {
         wchar_t name[MAX_COMPUTERNAME_LENGTH+1]{};DWORD length=MAX_COMPUTERNAME_LENGTH+1;
         if(!GetComputerNameW(name,&length)) throw std::runtime_error("Cannot determine Windows computer name.");
         hostname=utf8(std::wstring(name,length));bucket=L"aw-watcher-plsql_";
@@ -37,14 +38,18 @@ public:
         if(session) { WinHttpSetTimeouts(session,300,300,500,500);connection=WinHttpConnect(session,L"127.0.0.1",static_cast<INTERNET_PORT>(port),0); }
     }
     ~AW() { if(connection) WinHttpCloseHandle(connection);if(session) WinHttpCloseHandle(session); }
-    void send(const std::string& payload,int pulse) {
+    bool send(const std::string& payload,int pulse,bool boundary=false) {
         if(!bucketReady) bucketReady=request(L"POST",L"/api/0/buckets/"+bucket,
             "{\"client\":\"aw-watcher-plsql\",\"type\":\"app.editor.activity\",\"hostname\":"+quote(hostname)+"}",true);
         // A failed delivery splits AW merging even when recovery occurs within pulsetime.
-        auto body=payload;body.insert(body.size()-2,",\"delivery_segment_id\":"+quote(deliverySegment));
-        if(bucketReady && !request(L"POST",L"/api/0/buckets/"+bucket+L"/heartbeat?pulsetime="+std::to_wstring(pulse),body)) bucketReady=false;
+        auto body=payload;if(includeSegment) body.insert(body.size()-2,",\"delivery_segment_id\":"+quote(deliverySegment));
+        // Boundary pulses prevent short focus/outage gaps from merging without extra identity fields.
+        int mergeTime=(boundary||splitDelivery)?0:pulse;
+        if(bucketReady && !request(L"POST",L"/api/0/buckets/"+bucket+L"/heartbeat?pulsetime="+std::to_wstring(mergeTime),body)) bucketReady=false;
+        splitDelivery=!bucketReady;
         if(!bucketReady) deliverySegment=newId();
         // Delivery failures never enable file logging implicitly; retry on the next live pulse.
+        return bucketReady;
     }
 };
 }

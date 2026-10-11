@@ -3,9 +3,14 @@
 #include <filesystem>
 #include <string>
 #include <functional>
+#include <array>
 
 namespace activity {
+enum ExtraField { App, WindowId, WindowType, WindowTypeName, FileKind, ObjectType, ObjectOwner, ObjectName, ConnectionAlias, IntervalId, DeliverySegmentId, ExtraFieldCount };
+inline constexpr const char* extraFieldNames[]={"app","window_id","window_type","window_type_name","file_kind","object_type","object_owner","object_name","connection_alias","interval_id","delivery_segment_id"};
 struct Settings {
+    bool extended=false;
+    std::array<bool,ExtraFieldCount> extraFields{true,true,true,true,true,false,false,false,false,true,true};
     bool enabled = true, paused = false, files = true, objects = true, connection = true;
     bool history = false, csv = false, ics = false, aw = true, waka = false;
     std::string wakaKey;
@@ -47,6 +52,7 @@ class Engine {
     void write(const std::string& type, int64_t now, const std::string& extra = "");
     void finish(int64_t end, const std::string& reason);
 public:
+    bool deliveryBoundary=true;
     std::function<void(const std::string&)> heartbeatDelivery;
     std::function<void(int64_t,const Context&)> contextDelivery;
     Engine(Settings settings, std::string session = newId());

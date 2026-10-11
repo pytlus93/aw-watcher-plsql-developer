@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <tuple>
 #include <algorithm>
+#include <vector>
 #define NOMINMAX
 #include <windows.h>
 
@@ -111,8 +112,12 @@ void Journal::exportInterval(const std::string& id, int64_t start, int64_t end, 
     auto prefix="interval-"+utc(start).substr(0,10)+"-"+id;
     if(settings.csv) {
         std::ofstream o(root/(prefix+".csv"),std::ios::binary);
-        o << "id,start_utc,end_utc,duration_seconds,window_id,file,object_owner,object_name,connection_alias\r\n";
-        o << csvCell(id)<<','<<csvCell(utc(start))<<','<<csvCell(utc(end))<<','<<std::fixed<<std::setprecision(3)<<(end-start)/1000.0<<','<<csvCell(c.window)<<','<<csvCell(c.file)<<','<<csvCell(c.owner)<<','<<csvCell(c.objectName)<<','<<csvCell(c.connection)<<"\r\n";
+        std::ostringstream duration;duration<<std::fixed<<std::setprecision(3)<<(end-start)/1000.0;
+        std::vector<std::pair<std::string,std::string>> cells={{"id",id},{"start_utc",utc(start)},{"end_utc",utc(end)},{"duration_seconds",duration.str()},{"file",c.file}};
+        auto add=[&](ExtraField field,const std::string& value){if(!settings.extended||!settings.extraFields[field]) return;if(field>=ObjectType&&field<=ObjectName&&!settings.objects) return;if(field==ConnectionAlias&&!settings.connection) return;cells.emplace_back(extraFieldNames[field],value);};
+        add(WindowId,c.window);add(ObjectOwner,c.owner);add(ObjectName,c.objectName);add(ConnectionAlias,c.connection);
+        for(size_t i=0;i<cells.size();i++) {if(i)o<<',';o<<cells[i].first;}o<<"\r\n";
+        for(size_t i=0;i<cells.size();i++) {if(i)o<<',';o<<csvCell(cells[i].second);}o<<"\r\n";
         o.close();if(!o) throw std::runtime_error("CSV export failed; completed interval remains in JSONL.");
     }
     if(settings.ics) {
@@ -120,13 +125,13 @@ void Journal::exportInterval(const std::string& id, int64_t start, int64_t end, 
         o << "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Local Activity//PLSQL v1//EN\r\nBEGIN:VEVENT\r\n";
         folded(o,"UID:"+id+"@plsql-activity.local"); folded(o,"DTSTAMP:"+icsTime(end));
         folded(o,"DTSTART:"+icsTime(start)); folded(o,"DTEND:"+icsTime(end));
-        folded(o,"SUMMARY:PL/SQL Developer");
+        folded(o,"SUMMARY:Activity");
         folded(o,"DESCRIPTION:"+icsText(c.file+" "+c.owner+" "+c.objectName));
         o << "END:VEVENT\r\nEND:VCALENDAR\r\n";
         o.close();if(!o) throw std::runtime_error("ICS export failed; completed interval remains in JSONL.");
     }
 }
-static std::string data(const Context& c) {
+static std::string data(const Context& c,const Settings& settings,const std::string& interval="") {
     std::string title;
     if(!c.file.empty()) title=c.file.substr(c.file.find_last_of("/\\")==std::string::npos?0:c.file.find_last_of("/\\")+1);
     if(!c.objectName.empty()) {
@@ -150,21 +155,22 @@ static std::string data(const Context& c) {
     }
     auto file=c.file;std::replace(file.begin(),file.end(),'\\','/');
     const auto fileKind=!file.empty()?"path":!c.objectName.empty()?"database_reference":"unknown";
-    if(file.empty()) file=c.objectName;
+    if(file.empty()&&settings.extended) file=c.objectName;
     const char* windowType="Unknown";
     switch(c.windowType) {case 1:windowType="SQL window";break;case 2:windowType="Test window";break;case 3:windowType="Program window";break;case 4:windowType="Command window";break;case 5:windowType="Plan window";break;case 6:windowType="Report window";break;}
-    return "{\"app\":\"PL/SQL Developer\",\"language\":\"PL/SQL\",\"window_id\":" + quote(c.window) +
-        ",\"title\":" + quote(title) +
-        ",\"window_type\":" + std::to_string(c.windowType) + ",\"window_type_name\":"+quote(windowType)+",\"file\":" + quote(file) + ",\"file_kind\":"+quote(fileKind)+",\"project\":"+quote(connection)+
-        ",\"object_type\":" + quote(c.objectType) + ",\"object_owner\":" + quote(c.owner) +
-        ",\"object_name\":" + quote(c.objectName) + ",\"connection_alias\":" + quote(c.connection) + "}";
+    std::string result="{\"file\":"+quote(file)+",\"project\":"+quote(settings.extended?connection:"")+",\"language\":\"PL/SQL\",\"title\":"+quote(title);
+    auto add=[&](ExtraField field,const std::string& value) {if(!settings.extended||!settings.extraFields[field]) return;if(field>=ObjectType&&field<=ObjectName&&!settings.objects) return;if(field==ConnectionAlias&&!settings.connection) return;result+=",\""+std::string(extraFieldNames[field])+"\":"+value;};
+    add(App,quote("PL/SQL Developer"));add(WindowId,quote(c.window));add(WindowType,std::to_string(c.windowType));add(WindowTypeName,quote(windowType));
+    add(FileKind,quote(fileKind));add(ObjectType,quote(c.objectType));add(ObjectOwner,quote(c.owner));add(ObjectName,quote(c.objectName));add(ConnectionAlias,quote(c.connection));
+    if(!interval.empty()) add(IntervalId,quote(interval));
+    return result+"}";
 }
 Engine::Engine(Settings s,std::string id):settings(s),journal(s,id),session(id) {}
 void Engine::write(const std::string& type,int64_t now,const std::string& extra) {
     if(!settings.history) return;
     journal.append(now,"{\"schema_version\":1,\"id\":"+quote(newId())+",\"type\":"+quote(type)+
         ",\"timestamp\":"+quote(utc(now))+",\"session_id\":"+quote(session)+",\"interval_id\":"+quote(interval)+
-        ",\"context\":"+data(context)+extra+"}");
+        ",\"context\":"+data(context,settings)+extra+"}");
 }
 void Engine::finish(int64_t end,const std::string& reason) {
     if(!active) return;
@@ -172,7 +178,7 @@ void Engine::finish(int64_t end,const std::string& reason) {
     write("interval",end,",\"start\":"+quote(utc(start))+",\"end\":"+quote(utc(end))+
         ",\"duration_ms\":"+std::to_string(end-start)+",\"reason\":"+quote(reason));
     if(heartbeatDelivery&&end>start) {
-        auto payload=data(context);payload.pop_back();payload+=",\"interval_id\":"+quote(interval)+"}";
+        auto payload=data(context,settings,interval);
         heartbeatDelivery("{\"timestamp\":"+quote(utc(end))+",\"duration\":0,\"data\":"+payload+"}");
     }
     active=false;
@@ -180,8 +186,12 @@ void Engine::finish(int64_t end,const std::string& reason) {
 }
 void Engine::sample(Sample s) {
     if(!settings.files) s.context.file.clear();
-    if(!settings.objects) {s.context.objectType.clear();s.context.owner.clear();s.context.objectName.clear();}
-    if(!settings.connection) s.context.connection.clear();
+    // Inferred identifiers may not be delivered without their selected provenance field.
+    if(s.context.objectType=="SQL_REFERENCE"&&!settings.extraFields[ObjectType]) {s.context.objectName.clear();s.context.owner.clear();}
+    if(!settings.extended||!settings.objects||!settings.extraFields[ObjectType]) s.context.objectType.clear();
+    if(!settings.extended||!settings.objects||!settings.extraFields[ObjectOwner]) s.context.owner.clear();
+    if(!settings.extended||!settings.objects||!settings.extraFields[ObjectName]) s.context.objectName.clear();
+    if(!settings.extended||!settings.connection||!settings.extraFields[ConnectionAlias]) s.context.connection.clear();
     bool gap=active && (s.discontinuity || s.monotonicMs-lastMono>3000 ||
         s.monotonicMs<lastMono || s.utcMs<lastUtc || std::abs((s.utcMs-lastUtc)-(s.monotonicMs-lastMono))>2000);
     if(gap) {finish(lastUtc,"gap");write("gap",s.utcMs);}
@@ -189,15 +199,16 @@ void Engine::sample(Sample s) {
     if(active && (!recording || !(context==s.context)))
         finish(s.utcMs,!settings.enabled||settings.paused?"paused":!s.focused?"focus_lost":s.idle?"idle":"context_changed");
     if(recording&&!active) {
-        context=s.context;interval=newId();start=s.utcMs;active=true;pulseMono=s.monotonicMs-settings.heartbeat*1000;
+        context=s.context;interval=newId();start=s.utcMs;active=true;deliveryBoundary=true;pulseMono=s.monotonicMs-settings.heartbeat*1000;
         write("start",s.utcMs);if(settings.history) journal.expire(s.utcMs);
     }
     if(active&&s.monotonicMs-pulseMono>=settings.heartbeat*1000) {
         write("heartbeat",s.utcMs);pulseMono=s.monotonicMs;
         if(contextDelivery) contextDelivery(s.utcMs,context);
         if(heartbeatDelivery) {
-            auto payload=data(context);payload.pop_back();payload+=",\"interval_id\":"+quote(interval)+"}";
+            auto payload=data(context,settings,interval);
             heartbeatDelivery("{\"timestamp\":"+quote(utc(s.utcMs))+",\"duration\":0,\"data\":"+payload+"}");
+            deliveryBoundary=false;
         }
     }
     lastUtc=s.utcMs;lastMono=s.monotonicMs;

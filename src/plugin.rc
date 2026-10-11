@@ -1,5 +1,5 @@
 #include <windows.h>
-101 DIALOGEX 0, 0, 360, 403
+101 DIALOGEX 0, 0, 360, 553
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ActivityTracker - Settings"
 FONT 9, "Segoe UI"
@@ -20,17 +20,30 @@ BEGIN
     CONTROL "Include file paths",122,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,180,155,14
     CONTROL "Include object owner/name",123,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,180,173,14
     CONTROL "Include database/TNS alias (ActivityWatch and local history)",124,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,200,336,14
-    CONTROL "Save local activity files (JSONL, optional exports)",128,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,226,336,14
-    LTEXT "History directory:",-1,12,248,150,12
-    EDITTEXT 110,12,262,336,20,ES_AUTOHSCROLL
-    LTEXT "Rotate at (MB)",-1,12,295,90,12
-    EDITTEXT 113,100,291,55,18,ES_NUMBER
-    LTEXT "Retain (days)",-1,180,295,85,12
-    EDITTEXT 114,265,291,70,18,ES_NUMBER
-    CONTROL "Export CSV",125,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,320,120,14
-    CONTROL "Export ICS",126,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,320,120,14
-    LTEXT "Local activity files off = no JSONL, CSV, ICS or activity logs.",-1,12,344,336,12
-    LTEXT "SQL text and database credentials are never sent or logged.",-1,12,359,336,12
-    DEFPUSHBUTTON "Save",IDOK,195,378,72,20
-    PUSHBUTTON "Cancel",IDCANCEL,276,378,72,20
+    CONTROL "Extended payload (off = strict + title)",131,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,226,336,14
+    CONTROL "app",140,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,249,160,14
+    CONTROL "window_id",141,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,249,160,14
+    CONTROL "window_type",142,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,269,160,14
+    CONTROL "window_type_name",143,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,269,160,14
+    CONTROL "file_kind",144,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,289,160,14
+    CONTROL "object_type",145,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,289,160,14
+    CONTROL "object_owner",146,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,309,160,14
+    CONTROL "object_name",147,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,309,160,14
+    CONTROL "connection_alias",148,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,329,160,14
+    CONTROL "interval_id",149,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,329,160,14
+    CONTROL "delivery_segment_id",150,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,349,160,14
+    LTEXT "SQL references require object_type and object_name.",-1,12,365,336,10
+    CONTROL "Save local activity files (JSONL, optional exports)",128,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,376,336,14
+    LTEXT "History directory:",-1,12,398,150,12
+    EDITTEXT 110,12,412,336,20,ES_AUTOHSCROLL
+    LTEXT "Rotate at (MB)",-1,12,445,90,12
+    EDITTEXT 113,100,441,55,18,ES_NUMBER
+    LTEXT "Retain (days)",-1,180,445,85,12
+    EDITTEXT 114,265,441,70,18,ES_NUMBER
+    CONTROL "Export CSV",125,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,470,120,14
+    CONTROL "Export ICS",126,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,175,470,120,14
+    LTEXT "Local activity files off = no JSONL, CSV, ICS or activity logs.",-1,12,494,336,12
+    LTEXT "SQL text and database credentials are never sent or logged.",-1,12,509,336,12
+    DEFPUSHBUTTON "Save",IDOK,195,528,72,20
+    PUSHBUTTON "Cancel",IDCANCEL,276,528,72,20
 END

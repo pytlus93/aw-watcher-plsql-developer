@@ -45,11 +45,11 @@ void startWorker() {
     failed=false;auto config=settings;
     writer=std::thread([config] {
         try {
-            Engine engine(config);AW aw(config.awPort);
+            Engine engine(config);AW aw(config.awPort,config.extended&&config.extraFields[DeliverySegmentId]);
             std::unique_ptr<WakaTime> waka;
             if(config.waka&&!config.wakaKey.empty()) waka=std::make_unique<WakaTime>(config.wakaKey);
             if(waka) engine.contextDelivery=[&](int64_t time,const Context& context){waka->send(time,context);};
-            if(config.aw) engine.heartbeatDelivery=[&](const std::string& body){aw.send(body,config.heartbeat+2);};
+            if(config.aw) engine.heartbeatDelivery=[&](const std::string& body){aw.send(body,config.heartbeat+2,engine.deliveryBoundary);};
             for(;;) {
                 Sample s;
                 { std::unique_lock<std::mutex> guard(lock);ready.wait(guard,[]{return stopping||!pending.empty();});
@@ -80,14 +80,14 @@ void collectSample() {
         if(h&&s.context.windowType>=1&&s.context.windowType<=6) {
             if(!windows.count(h)) windows[h]=newId();s.context.window=windows[h];
             if(settings.files) if(auto filename=cb<GetText>(23)) s.context.file=sdkText(filename());
-            if(settings.objects) if(auto object=cb<GetObject>(110)) {
+            if(settings.extended&&settings.objects&&(settings.extraFields[ObjectType]||settings.extraFields[ObjectOwner]||settings.extraFields[ObjectName])) if(auto object=cb<GetObject>(110)) {
                 char *t=nullptr,*o=nullptr,*n=nullptr,*sub=nullptr;
                 if(object(&t,&o,&n,&sub)) {s.context.objectType=sdkText(t);s.context.owner=sdkText(o);s.context.objectName=sdkText(n);}
             }
-            if(settings.objects&&references.count(h)&&!references[h].empty()&&s.context.objectName.empty()) {
+            if(settings.extended&&settings.objects&&settings.extraFields[ObjectType]&&settings.extraFields[ObjectName]&&references.count(h)&&!references[h].empty()&&s.context.objectName.empty()) {
                 s.context.objectType="SQL_REFERENCE";s.context.objectName=references[h];
             }
-            if(settings.connection) {
+            if(settings.extended&&settings.connection&&settings.extraFields[ConnectionAlias]) {
                 auto index=cb<GetInt>(245);auto info=cb<GetConnection>(240);
                 int ix=index?index():-1;
                 if(ix>=0&&info) {
@@ -168,7 +168,7 @@ void __cdecl OnWindowCreated(int) {
 }
 BOOL __cdecl BeforeExecuteWindow(int windowType) {
     try {
-        if(GetCurrentThreadId()!=ideThread||!settings.objects||!settings.enabled||settings.paused||windowType!=1) return TRUE;
+        if(GetCurrentThreadId()!=ideThread||!settings.extended||!settings.objects||!settings.extraFields[ObjectType]||!settings.extraFields[ObjectName]||!settings.enabled||settings.paused||windowType!=1) return TRUE;
         auto child=cb<GetHandle>(18);HWND h=child?child():nullptr;if(!h)return TRUE;
         const char* source=nullptr;if(auto selected=cb<GetText>(31)) source=selected();
         if(!source||!*source) if(auto text=cb<GetText>(30))source=text();
@@ -197,7 +197,7 @@ char* __cdecl CreateMenuItem(int index) {
 }
 void __cdecl OnMenuClick(int index) {if(index==2) configure();}
 void __cdecl Configure() {configure();}
-char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.2\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
+char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.3\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
 }
 BOOL WINAPI DllMain(HINSTANCE instance,DWORD reason,LPVOID) {
     if(reason==DLL_PROCESS_ATTACH) moduleInstance=instance;return TRUE;

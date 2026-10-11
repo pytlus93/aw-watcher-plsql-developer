@@ -78,6 +78,12 @@ activity::Settings loadSettings() {
     activity::Settings s;auto path=configuration();s.directory=path.parent_path()/L"history";
     s.directory=read(L"directory",s.directory.c_str(),path);
     auto integer=[&](const wchar_t* k,int d) { auto text=read(k,std::to_wstring(d).c_str(),path);size_t n=0;int v=std::stoi(text,&n);if(n!=text.size()) throw std::runtime_error("Invalid stored numeric setting.");return v; };
+    auto storedMode=read(L"payloadMode",L"__missing__",path);
+    bool legacy=std::filesystem::exists(path)&&storedMode==L"__missing__";
+    std::wstring mode=storedMode==L"__missing__"?(legacy?L"extended":L"strict"):storedMode.c_str();
+    if(mode!=L"strict"&&mode!=L"extended") throw std::runtime_error("Invalid payload mode.");
+    s.extended=mode==L"extended";
+    for(int i=0;i<activity::ExtraFieldCount;i++) s.extraFields[i]=integer(wide("field_"+std::string(activity::extraFieldNames[i])).c_str(),legacy?1:static_cast<int>(s.extraFields[i]))!=0;
     s.enabled=integer(L"enabled",1)!=0;s.paused=integer(L"paused",0)!=0;
     s.files=integer(L"files",1)!=0;s.objects=integer(L"objects",1)!=0;s.connection=integer(L"connection",1)!=0;
     s.history=integer(L"history",0)!=0;s.csv=integer(L"csv",0)!=0;s.ics=integer(L"ics",0)!=0;s.aw=integer(L"aw",1)!=0;
@@ -91,12 +97,14 @@ activity::Settings defaultSettings() {
 void saveSettings(const activity::Settings& s) {
     s.validate();auto path=configuration(),tmp=path;tmp+=L".tmp";
     // UTF-16 INI supports non-ASCII destination paths. Replace only after a complete write.
-    std::wstring text=L"[activity]\r\nversion=1\r\ndirectory="+s.directory.wstring()+L"\r\n";
+    std::wstring text=L"[activity]\r\nversion=2\r\ndirectory="+s.directory.wstring()+L"\r\n";
     auto add=[&](const wchar_t* k,int v){text+=std::wstring(k)+L"="+std::to_wstring(v)+L"\r\n";};
     add(L"enabled",s.enabled);add(L"paused",s.paused);add(L"files",s.files);add(L"objects",s.objects);add(L"connection",s.connection);
     add(L"csv",s.csv);add(L"ics",s.ics);add(L"aw",s.aw);add(L"heartbeat",s.heartbeat);add(L"idle",s.idle);
     add(L"rotationMB",s.rotationMB);add(L"retentionDays",s.retentionDays);add(L"awPort",s.awPort);
     add(L"history",s.history);add(L"waka",s.waka);
+    text+=std::wstring(L"payloadMode=")+(s.extended?L"extended":L"strict")+L"\r\n";
+    for(int i=0;i<activity::ExtraFieldCount;i++) add(wide("field_"+std::string(activity::extraFieldNames[i])).c_str(),s.extraFields[i]);
     if(s.wakaKey!=loadKey()) storeKey(s.wakaKey);
     std::ofstream o(tmp,std::ios::binary);const unsigned char bom[]={0xff,0xfe};o.write(reinterpret_cast<const char*>(bom),2);
     o.write(reinterpret_cast<const char*>(text.data()),text.size()*sizeof(wchar_t));o.close();
@@ -110,6 +118,9 @@ static void enableFields(HWND d) {
     BOOL history=IsDlgButtonChecked(d,128)==BST_CHECKED;
     for(int id:{110,113,114,125,126}) EnableWindow(GetDlgItem(d,id),history);
     EnableWindow(GetDlgItem(d,130),IsDlgButtonChecked(d,129)==BST_CHECKED);
+    BOOL extended=IsDlgButtonChecked(d,131)==BST_CHECKED;
+    for(int i=0;i<activity::ExtraFieldCount;i++) EnableWindow(GetDlgItem(d,140+i),extended);
+    EnableWindow(GetDlgItem(d,123),extended);EnableWindow(GetDlgItem(d,124),extended);
 }
 static INT_PTR CALLBACK dialog(HWND d,UINT msg,WPARAM w,LPARAM l) {
     auto s=reinterpret_cast<activity::Settings*>(GetWindowLongPtrW(d,DWLP_USER));
@@ -121,11 +132,13 @@ static INT_PTR CALLBACK dialog(HWND d,UINT msg,WPARAM w,LPARAM l) {
         bool checks[]={s->enabled,s->paused,s->files,s->objects,s->connection,s->csv,s->ics,s->aw};
         for(int i=0;i<8;i++) CheckDlgButton(d,120+i,checks[i]?BST_CHECKED:BST_UNCHECKED);
         CheckDlgButton(d,128,s->history?BST_CHECKED:BST_UNCHECKED);CheckDlgButton(d,129,s->waka?BST_CHECKED:BST_UNCHECKED);
+        CheckDlgButton(d,131,s->extended?BST_CHECKED:BST_UNCHECKED);
+        for(int i=0;i<activity::ExtraFieldCount;i++) CheckDlgButton(d,140+i,s->extraFields[i]?BST_CHECKED:BST_UNCHECKED);
         SetDlgItemTextW(d,130,wide(s->wakaKey).c_str());enableFields(d);
         return TRUE;
     }
     if(msg==WM_COMMAND&&LOWORD(w)==IDCANCEL) { EndDialog(d,IDCANCEL);return TRUE; }
-    if(msg==WM_COMMAND&&(LOWORD(w)==128||LOWORD(w)==129)) {enableFields(d);return TRUE;}
+    if(msg==WM_COMMAND&&(LOWORD(w)==128||LOWORD(w)==129||LOWORD(w)==131)) {enableFields(d);return TRUE;}
     if(msg==WM_COMMAND&&LOWORD(w)==IDOK) {
         try {
             auto candidate=*s;candidate.directory=field(d,110);
@@ -135,6 +148,8 @@ static INT_PTR CALLBACK dialog(HWND d,UINT msg,WPARAM w,LPARAM l) {
             bool* checks[]={&candidate.enabled,&candidate.paused,&candidate.files,&candidate.objects,&candidate.connection,&candidate.csv,&candidate.ics,&candidate.aw};
             for(int i=0;i<8;i++) *checks[i]=IsDlgButtonChecked(d,120+i)==BST_CHECKED;
             candidate.history=IsDlgButtonChecked(d,128)==BST_CHECKED;candidate.waka=IsDlgButtonChecked(d,129)==BST_CHECKED;
+            candidate.extended=IsDlgButtonChecked(d,131)==BST_CHECKED;
+            for(int i=0;i<activity::ExtraFieldCount;i++) candidate.extraFields[i]=IsDlgButtonChecked(d,140+i)==BST_CHECKED;
             candidate.wakaKey=utf8(field(d,130));
             if(candidate.waka&&(candidate.wakaKey.empty()||candidate.wakaKey.size()>256||candidate.wakaKey.find_first_of("\r\n\t ")!=std::string::npos))
                 throw std::runtime_error("Enter a valid WakaTime API key (without spaces).");
