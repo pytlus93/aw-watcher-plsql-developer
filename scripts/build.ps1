@@ -30,11 +30,11 @@ try { & cmd.exe /d /c $batch; if($LASTEXITCODE){throw "Build/test failed: $LASTE
 if($Package) {
     $dist=Join-Path $root 'dist'
     New-Item -ItemType Directory -Force $dist | Out-Null
-    $stage=Join-Path $out 'package-1.3'
+    $stage=Join-Path $out 'package-1.3.1'
     $stageDocs=Join-Path $stage 'docs'
     New-Item -ItemType Directory -Force $stageDocs | Out-Null
     Copy-Item -LiteralPath (Join-Path $out 'ActivityTracker.dll'),(Join-Path $root 'README.md'),(Join-Path $root 'LICENSE') -Destination $stage -Force
-    foreach($name in 'SCHEMA.md','SDK.md','VALIDATION.md','PAYLOAD.md') {
+    foreach($name in 'SCHEMA.md','SDK.md','VALIDATION.md','PAYLOAD.md','RELEASES.md') {
         Copy-Item -LiteralPath (Join-Path $root "docs\$name") -Destination $stageDocs -Force
     }
     Compress-Archive -Path "$stage\*" -DestinationPath (Join-Path $dist "ActivityTracker-$Platform.zip") -Force

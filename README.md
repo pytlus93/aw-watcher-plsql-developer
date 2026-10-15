@@ -51,3 +51,5 @@ The reusable tracking core, native file adapter, SDK adapter, AW/WakaTime delive
 MIT license. No changes were made to other workspace projects.
 
 See [the complete field catalog, defaults and migration](docs/PAYLOAD.md). Standard fields are serialized before title and extensions; this does not control AW tooltip order. The installed editor tooltip explicitly renders Filename, Path and Language. Our v0.13.2 isolated-server validation reports actual API key order separately.
+
+The DLL includes Windows version metadata. See [release notes and update registration](docs/RELEASES.md) for GitHub and the built-in update checker.

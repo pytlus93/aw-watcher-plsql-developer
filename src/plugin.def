@@ -1,6 +1,7 @@
 EXPORTS
     BeforeExecuteWindow
     IdentifyPlugIn
+    PlugInName
     RegisterCallback
     OnCreate
     OnActivate

@@ -133,6 +133,7 @@ void configure() {
 }
 }
 extern "C" {
+char* __cdecl PlugInName() { return const_cast<char*>("ActivityTracker"); }
 char* __cdecl IdentifyPlugIn(int) { return const_cast<char*>("ActivityTracker"); }
 void __cdecl RegisterCallback(int index,void* address) { if(index>=0&&index<254) callbacks[index]=address; }
 void __cdecl OnCreate() { /* Host callbacks are deliberately unused until OnActivate. */ }
@@ -197,7 +198,7 @@ char* __cdecl CreateMenuItem(int index) {
 }
 void __cdecl OnMenuClick(int index) {if(index==2) configure();}
 void __cdecl Configure() {configure();}
-char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.3\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
+char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.3.1\nhttps://github.com/pytlus93/aw-watcher-plsql\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
 }
 BOOL WINAPI DllMain(HINSTANCE instance,DWORD reason,LPVOID) {
     if(reason==DLL_PROCESS_ATTACH) moduleInstance=instance;return TRUE;
