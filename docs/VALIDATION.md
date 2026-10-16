@@ -57,3 +57,8 @@ Manual acceptance for the current release: after an authorized real Windows rest
 
 ## 2026-10-15 version and update metadata
 Local x64/x86 MSVC builds retain 99 core and 18 settings assertions per architecture. Windows FileVersion/ProductVersion are checked as 1.3.1.0 on both production DLLs. Headless x64 DLL loading checks PlugInName and About version/URL without activation. Release notes rendered with Pandoc and inspected as HTML. The live IDE Updates dialog and vendor registration remain unverified; no installer, release publishing, workflow or cloud update request was added.
+
+
+## Fresh validation — 2026-10-16
+
+Both x64/x86 builds and packages passed, with 99 core and 18 headless settings assertions each. Both architectures passed loopback (8 assertions), extended and strict recovery, and mock WakaTime auth/retry/throttle tests. Production AW contains positive-duration editor events dated today with title and extended metadata. No production DLL replacement, IDE interaction, real credentials/cloud request, production restart or reboot was performed.
