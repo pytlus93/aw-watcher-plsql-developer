@@ -4,6 +4,10 @@ ActivityTracker is a native PL/SQL Developer plugin that sends focused editor ac
 
 Tracking pauses when the IDE loses focus or the computer is idle. SQL text and database credentials are never sent or saved in activity history.
 
+## Requirements
+
+Windows and PL/SQL Developer with the matching x64/x86 plugin architecture. ActivityWatch must run locally for AW delivery. WakaTime additionally requires an account, network access and an explicitly configured API key. See [validation](docs/VALIDATION.md) for tested behavior and compatibility limits.
+
 ## Install or upgrade
 
 Version **1.3.1** is distributed as a ZIP; there is no setup installer.
@@ -16,7 +20,7 @@ Version **1.3.1** is distributed as a ZIP; there is no setup installer.
 
 The plugin runs inside PL/SQL Developer. Check [validation notes](docs/VALIDATION.md) for tested host versions and remaining compatibility checks.
 
-## Send activity to ActivityWatch
+## Configuration and everyday use
 
 Start ActivityWatch, then configure the plugin:
 
@@ -42,18 +46,7 @@ To show database context:
 2. Enable **Include object owner/name**, and select **object_type** and **object_name**. Select **object_owner** if you also want the schema name.
 3. To include the connection, enable **Include database/TNS alias** and select **connection_alias**.
 
-For example, an unsaved worksheet referencing `TEST_OBJECT` under `TEST_DEV.WORLD` can appear as:
-
-```text
-file:     TEST_OBJECT
-project:  TEST_DEV
-title:    TEST_OBJECT @ TEST_DEV
-language: PL/SQL
-```
-
-These file/project values are logical database labels, not filesystem paths. The trailing `.WORLD` is hidden in display labels; the optional connection field retains the full alias. New configurations leave object and connection fields unchecked even after extended mode is enabled.
-
-Program windows use object metadata from the IDE. SQL worksheets infer referenced names when you execute SQL; this requires both **object_type** and **object_name**. The plugin briefly reads selected SQL, or the worksheet when nothing is selected, extracts identifiers, and discards the text. Inferred names are marked `SQL_REFERENCE`; they are not verified database objects, and some SQL constructs may have no context.
+Program windows use IDE object metadata. SQL worksheets can infer object references on execution: this briefly reads selected SQL (or the worksheet), extracts identifiers and discards the text. The result is inferred context, not a verified database object. Object/connection fields start unchecked, even when extended mode is enabled. See [the field catalog](docs/PAYLOAD.md) for examples and extraction limits.
 
 ActivityWatch's editor tooltip may show only Filename, Path and Language, even when the event contains a title and connection. See the [field catalog](docs/PAYLOAD.md) for all fields, privacy controls, migration behavior and display limitations.
 
@@ -61,9 +54,9 @@ ActivityWatch's editor tooltip may show only Filename, Path and Language, even w
 
 ### WakaTime
 
-Enable **Send to WakaTime (cloud)** and enter your API key. The key is stored in Windows Credential Manager, not in the settings file or activity history. Clearing the key and saving removes the stored credential.
+Enable **Send to WakaTime (cloud)** and enter your API key. The implementation stores the key in Windows Credential Manager, not in the settings file or activity history. Clearing the key and saving removes the stored credential.
 
-WakaTime receives permitted file or object context over HTTPS. Connection aliases and database credentials are excluded. This is optional cloud delivery and is off by default. Real-account acceptance remains unverified; payload and delivery details are in the [field catalog](docs/PAYLOAD.md).
+WakaTime receives permitted file or object context over HTTPS. Connection aliases and database credentials are excluded. This is optional cloud delivery and is off by default. Real Credential Manager/account acceptance remains unverified; payload and delivery details are in the [field catalog](docs/PAYLOAD.md).
 
 ### Local history and exports
 
@@ -87,6 +80,8 @@ Requires Windows, MSVC C++ tools and the Windows SDK. The build script does not 
 ./scripts/build.ps1 -Platform x86 -Test -SkipUI -Package
 Push-Location build/x64
 python ../../tests/loopback_test.py --headless
+python ../../tests/aw_recovery_test.py
+python ../../tests/aw_recovery_test.py --strict
 python ../../tests/waka_loopback_test.py
 Pop-Location
 ```
