@@ -1,53 +1,100 @@
-# ActivityTracker for PL/SQL Developer 1.3
+# ActivityTracker for PL/SQL Developer
 
-A native Allround Automations PL/SQL Developer watcher, written independently from the official installed SDK. No den-kozlov/PLSQLDeveloperWakatime implementation was used.
+ActivityTracker is a native PL/SQL Developer plugin that sends focused editor activity to [ActivityWatch](https://activitywatch.net/). Optional destinations are WakaTime and local JSONL history with CSV/ICS exports.
 
-## Update or install
+Tracking pauses when the IDE loses focus or the computer is idle. SQL text and database credentials are never sent or saved in activity history.
 
-Close PL/SQL Developer, extract the matching x64/x86 ZIP, and install `ActivityTracker.dll` in the IDE's `PlugIns` directory. Restart the IDE. Enable **ActivityTracker** in the plug-in manager and open Configure, or **Plug-Ins → ActivityTracker → Settings**. For an upgrade, close the IDE and remove the old `PLSQLActivity.dll` from PlugIns before installing ActivityTracker.dll; keeping both would load duplicate producers. Existing configuration and credentials keep their legacy PLSQLActivity storage names. Before version 12, use **Tools → ActivityTracker → Settings**.
+## Install or upgrade
 
-## ActivityWatch only
+Version **1.3.1** is distributed as a ZIP; there is no setup installer.
 
-- Enable **Send to local ActivityWatch**, normally port **5600**.
-- Turn **Save local activity files** off. This disables all JSONL, CSV, ICS, activity logs, directory probes and retention writes, even if export boxes were previously checked. Network failures do not turn logging back on.
-- New settings use **strict + title**: saved path, unknown project, language and privacy-safe title only.
-- Enable **Extended payload** for logical database labels and choose each extra field; collection permissions still apply. Existing configurations migrate to extended mode with their existing privacy choices.
-- Keep heartbeat **15 seconds** and idle **300 seconds** initially.
+1. Choose the package matching **PL/SQL Developer's architecture**: `ActivityTracker-x64.zip` for a 64-bit IDE or `ActivityTracker-x86.zip` for a 32-bit IDE.
+2. Close PL/SQL Developer. Extract `ActivityTracker.dll` into its `PlugIns` directory.
+3. If upgrading from the earlier plugin, remove `PLSQLActivity.dll` from that directory to avoid loading both copies.
+4. Restart the IDE and enable **ActivityTracker** in the plug-in manager.
+5. Open **Plug-Ins → ActivityTracker → Settings**, or use **Configure** in the plug-in manager. Older IDE menus use **Tools → ActivityTracker → Settings**.
 
-New installations default to ActivityWatch on and activity files off. Existing explicit destination/privacy settings are preserved. Settings themselves remain in `%LOCALAPPDATA%\PLSQLActivity\settings.ini`; that is configuration, not an activity log. Previously created activity files are not deleted automatically.
+The plugin runs inside PL/SQL Developer. Check [validation notes](docs/VALIDATION.md) for tested host versions and remaining compatibility checks.
 
-Unsaved SQL worksheets have distinct window IDs and no fabricated file path. On execution, the adapter reads the selected SQL, or the worksheet text when nothing is selected, transiently on the IDE thread. It extracts FROM/JOIN/UPDATE/INTO references and discards SQL text. Only names are transmitted, marked `SQL_REFERENCE`; tables and views cannot be distinguished without database queries. Comments, ordinary literals, Oracle q literals and CTE aliases are excluded. This conservative parser is not a complete Oracle parser: comma joins, dynamic SQL, table functions and very large scripts may have missing context. With no selection, references can include other statements in the worksheet. Strict mode, disabling **Include object owner/name**, or disabling either **object_type** or **object_name** prevents this SQL-reference reading and extraction.
+## Send activity to ActivityWatch
 
-The connection field is the SDK's database/TNS string, not the connection-list display label. Program windows use the native object callback. SQL contents and database usernames/passwords are never transmitted or written to activity files. Every AW event includes a readable title derived only from enabled metadata, with no application-name prefix.
+Start ActivityWatch, then configure the plugin:
 
-## WakaTime
+| Setting | Recommended starting value |
+| --- | --- |
+| Enable tracking | On |
+| Pause tracking | Off |
+| Send to local ActivityWatch | On; port `5600` |
+| Heartbeat | `15` seconds |
+| Idle timeout | `300` seconds |
+| Save local activity files | Off |
+| Send to WakaTime (cloud) | Off |
 
-Enable **Send to WakaTime (cloud)** and enter your API key. The masked key is stored in Windows Credential Manager under `PLSQLActivity/WakaTime`, never in the INI or activity files. Disabling WakaTime stops delivery; clearing the key removes the stored credential on Save.
+These are the defaults for a new configuration. Existing settings are preserved. With local activity files off, the plugin does not write activity logs or exports; delivery failures do not enable file logging.
 
-This optional adapter uses the [official heartbeat API](https://wakatime.com/developers/#heartbeats) over verified HTTPS to api.wakatime.com, with HTTP Basic authentication. It sends file entities when paths are enabled/available, otherwise app entities with available object context. SQL text, database connection aliases and database credentials are excluded from WakaTime. Unchanged context is sent at most every 120 seconds; changed context and failures are limited to one attempt per 15 seconds. No persistent offline queue, CLI downloads, Git inspection or SQL execution is involved. Missed offline heartbeats are not replayed. This direct API adapter has synthetic protocol tests; acceptance by a real WakaTime account remains unverified.
+### Choose the context to include
 
-## Optional local history
+By default, **Extended payload** is off. This sends the editor fields `file`, `project`, `language`, plus a readable `title`. Saved file paths are included when permitted; unknown file/project values are empty. Database object and connection context are off in this mode.
 
-Enable **Save local activity files** to use rotating JSONL and optional CSV/ICS completed-interval exports. The destination, rotation, retention and export controls are disabled when local activity files are off. See [schema](docs/SCHEMA.md).
+To show database context:
 
-## Build and validation
+1. Enable **Extended payload**.
+2. Enable **Include object owner/name**, and select **object_type** and **object_name**. Select **object_owner** if you also want the schema name.
+3. To include the connection, enable **Include database/TNS alias** and select **connection_alias**.
 
-Windows, MSVC C++ tools and Windows SDK are required; no dependencies are installed.
+For example, an unsaved worksheet referencing `TEST_OBJECT` under `TEST_DEV.WORLD` can appear as:
+
+```text
+file:     TEST_OBJECT
+project:  TEST_DEV
+title:    TEST_OBJECT @ TEST_DEV
+language: PL/SQL
+```
+
+These file/project values are logical database labels, not filesystem paths. The trailing `.WORLD` is hidden in display labels; the optional connection field retains the full alias. New configurations leave object and connection fields unchecked even after extended mode is enabled.
+
+Program windows use object metadata from the IDE. SQL worksheets infer referenced names when you execute SQL; this requires both **object_type** and **object_name**. The plugin briefly reads selected SQL, or the worksheet when nothing is selected, extracts identifiers, and discards the text. Inferred names are marked `SQL_REFERENCE`; they are not verified database objects, and some SQL constructs may have no context.
+
+ActivityWatch's editor tooltip may show only Filename, Path and Language, even when the event contains a title and connection. See the [field catalog](docs/PAYLOAD.md) for all fields, privacy controls, migration behavior and display limitations.
+
+## Optional destinations
+
+### WakaTime
+
+Enable **Send to WakaTime (cloud)** and enter your API key. The key is stored in Windows Credential Manager, not in the settings file or activity history. Clearing the key and saving removes the stored credential.
+
+WakaTime receives permitted file or object context over HTTPS. Connection aliases and database credentials are excluded. This is optional cloud delivery and is off by default. Real-account acceptance remains unverified; payload and delivery details are in the [field catalog](docs/PAYLOAD.md).
+
+### Local history and exports
+
+Enable **Save local activity files** and choose a history directory. JSONL history rotates according to the size and retention settings. **Export CSV** and **Export ICS** add completed-interval exports. Existing history is not deleted when recording is disabled. See the [history schema](docs/SCHEMA.md).
+
+## Troubleshooting
+
+- **No new ActivityWatch events:** confirm ActivityWatch is running, the configured port matches, tracking is enabled and not paused, and an editor window is focused. The plugin retries ActivityWatch delivery when the server returns; missed observations are not replayed.
+- **Object or connection is missing:** check the extended settings above. SQL references appear after execution and may be unavailable for unsupported syntax. The connection is the IDE's database/TNS alias, which can differ from its friendly connection-list label.
+- **Tracking stopped after an internal or storage error:** correct the reported problem, then open Settings and save to retry.
+- **Updates shows no latest version:** see [release notes and update registration](docs/RELEASES.md). A versioned DLL alone does not establish an online update source.
+
+Configuration is stored in `%LOCALAPPDATA%\PLSQLActivity\settings.ini`. That legacy directory name is retained for upgrades; it is separate from optional activity history.
+
+## Build and validate locally
+
+Requires Windows, MSVC C++ tools and the Windows SDK. The build script does not install dependencies. Python is needed for the loopback tests.
 
 ```powershell
 ./scripts/build.ps1 -Platform x64 -Test -SkipUI -Package
 ./scripts/build.ps1 -Platform x86 -Test -SkipUI -Package
-cd build/x64
+Push-Location build/x64
 python ../../tests/loopback_test.py --headless
 python ../../tests/waka_loopback_test.py
+Pop-Location
 ```
 
-Omit `-SkipUI` only for an explicit interactive settings/SDK test; it deliberately exercises a validation popup. The revised settings layout is compiled but has not been visually revalidated. The older documentation screenshot describes version 1.0 only and is not included in current packages.
+Packages are written to `dist/`. Repeat the loopback tests from `build/x86` to validate that architecture. Keep `-SkipUI` for unattended builds; omitting it launches the interactive test harness. No GitHub Actions workflows are required.
 
-The reusable tracking core, native file adapter, SDK adapter, AW/WakaTime delivery adapters and native settings UI remain separate. The official 16.0.8 x64 SDK is installed; both architectures build. The user's 1.0 export confirms real ActivityWatch receipt, but new SQL-reference callbacks, credential storage, WakaTime account behavior and the revised host UI still require real-host validation. See [SDK findings](docs/SDK.md) and [validation](docs/VALIDATION.md).
+See [SDK integration](docs/SDK.md) and [validation results](docs/VALIDATION.md) for protocol recovery tests, toolchain details and the distinction between synthetic tests and real-host evidence. The revised settings UI and real WakaTime account behavior still need acceptance testing.
 
-MIT license. No changes were made to other workspace projects.
+## License
 
-See [the complete field catalog, defaults and migration](docs/PAYLOAD.md). Standard fields are serialized before title and extensions; this does not control AW tooltip order. The installed editor tooltip explicitly renders Filename, Path and Language. Our v0.13.2 isolated-server validation reports actual API key order separately.
-
-The DLL includes Windows version metadata. See [release notes and update registration](docs/RELEASES.md) for GitHub and the built-in update checker.
+[MIT](LICENSE).
