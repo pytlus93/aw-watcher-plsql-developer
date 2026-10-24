@@ -13,6 +13,21 @@ failed_heartbeat = False
 
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+
+    def handle(self):
+        try:
+            super().handle()
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass  # Status-only clients may close without draining response bodies.
+
+    def do_GET(self):
+        body = json.dumps({'type': 'app.editor.activity'}).encode()
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_POST(self):
         global failed_heartbeat
         body = self.rfile.read(int(self.headers['Content-Length']))
@@ -28,7 +43,7 @@ class Handler(BaseHTTPRequestHandler):
             status = 503
         self.send_response(status)
         self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', '0' if status == 304 else '2')
+        self.send_header('Content-Length', '67' if status == 304 else '2')
         self.end_headers()
         if status != 304:
             self.wfile.write(b'{}')

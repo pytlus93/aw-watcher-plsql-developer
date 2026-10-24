@@ -3,6 +3,7 @@
 #include <winhttp.h>
 #include <string>
 #include "settings.h"
+#include "third_party/picojson.h"
 namespace activity {
 class AW {
     HINTERNET session=nullptr, connection=nullptr;
@@ -12,16 +13,35 @@ class AW {
     std::string hostname;
     std::string deliverySegment=newId();
     bool includeSegment, splitDelivery=true;
-    bool request(const wchar_t* verb,const std::wstring& path,const std::string& body,bool allowExisting=false) {
+    bool request(const wchar_t* verb,const std::wstring& path,const std::string& body,bool allowExisting=false,std::string* response=nullptr) {
         if(!connection) return false;
         HINTERNET r=WinHttpOpenRequest(connection,verb,path.c_str(),nullptr,WINHTTP_NO_REFERER,WINHTTP_DEFAULT_ACCEPT_TYPES,0);
         if(!r) return false;
+        DWORD redirects=WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
+        WinHttpSetOption(r,WINHTTP_OPTION_REDIRECT_POLICY,&redirects,sizeof(redirects));
         BOOL ok=WinHttpSendRequest(r,L"Content-Type: application/json\r\n",static_cast<DWORD>(-1),
             const_cast<char*>(body.data()),static_cast<DWORD>(body.size()),static_cast<DWORD>(body.size()),0);
         if(ok) ok=WinHttpReceiveResponse(r,nullptr);
         DWORD status=0,n=sizeof(status);
         if(ok) ok=WinHttpQueryHeaders(r,WINHTTP_QUERY_STATUS_CODE|WINHTTP_QUERY_FLAG_NUMBER,WINHTTP_HEADER_NAME_BY_INDEX,&status,&n,WINHTTP_NO_HEADER_INDEX);
-        WinHttpCloseHandle(r);return ok&&((status>=200&&status<300)||(allowExisting&&status==304));
+        bool accepted=ok&&((status>=200&&status<300)||(allowExisting&&status==304));
+        if(accepted&&response) {
+            response->clear();char buffer[4096];DWORD received=0;
+            do {
+                ok=WinHttpReadData(r,buffer,sizeof(buffer),&received);
+                if(!ok||response->size()+received>65536) {accepted=false;break;}
+                response->append(buffer,received);
+            }while(received);
+        }
+        // Creation/heartbeat requests need status only; metadata GETs need a body.
+        WinHttpCloseHandle(r);return accepted;
+    }
+    bool compatibleBucket() {
+        std::string metadata;
+        if(!request(L"GET",L"/api/0/buckets/"+bucket,"",false,&metadata)) return false;
+        picojson::value parsed;
+        return picojson::parse(parsed,metadata).empty()&&parsed.is<picojson::object>()&&
+            parsed.get("type").is<std::string>()&&parsed.get("type").get<std::string>()=="app.editor.activity";
     }
 public:
     explicit AW(int p,bool segment=true):port(p),includeSegment(segment) {
@@ -40,7 +60,7 @@ public:
     ~AW() { if(connection) WinHttpCloseHandle(connection);if(session) WinHttpCloseHandle(session); }
     bool send(const std::string& payload,int pulse,bool boundary=false) {
         if(!bucketReady) bucketReady=request(L"POST",L"/api/0/buckets/"+bucket,
-            "{\"client\":\"aw-watcher-plsql\",\"type\":\"app.editor.activity\",\"hostname\":"+quote(hostname)+"}",true);
+            "{\"client\":\"aw-watcher-plsql\",\"type\":\"app.editor.activity\",\"hostname\":"+quote(hostname)+"}",true)&&compatibleBucket();
         // A failed delivery splits AW merging even when recovery occurs within pulsetime.
         auto body=payload;if(includeSegment) body.insert(body.size()-2,",\"delivery_segment_id\":"+quote(deliverySegment));
         // Boundary pulses prevent short focus/outage gaps from merging without extra identity fields.

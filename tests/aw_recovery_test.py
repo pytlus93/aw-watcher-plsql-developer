@@ -5,6 +5,7 @@ import subprocess
 import threading
 import time
 import sys
+import socket
 from urllib.parse import parse_qs, urlsplit
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -15,13 +16,45 @@ reject_heartbeat = False
 strict = '--strict' in sys.argv
 merge_windows = []
 delivery_failures = []
+metadata = {'type': 'app.editor.activity'}
 
 
 class Server(ThreadingHTTPServer):
     allow_reuse_address = True
 
+    def __init__(self, *args):
+        self.connections = set()
+        self.connection_lock = threading.Lock()
+        super().__init__(*args)
+
+    def get_request(self):
+        connection, address = super().get_request()
+        with self.connection_lock:
+            self.connections.add(connection)
+        return connection, address
+
+    def close_request(self, connection):
+        with self.connection_lock:
+            self.connections.discard(connection)
+        super().close_request(connection)
+
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+
+    def handle(self):
+        try:
+            super().handle()
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            pass  # Expected when the status-only WinHTTP client closes a response.
+
+    def do_GET(self):
+        body = metadata if isinstance(metadata, bytes) else json.dumps(metadata).encode()
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_POST(self):
         global existing, reject_creation, reject_heartbeat
         body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
@@ -41,7 +74,7 @@ class Handler(BaseHTTPRequestHandler):
         if pulse:
             merge_windows.append((status, int(parse_qs(urlsplit(self.path).query)['pulsetime'][0]), body))
         self.send_response(status)
-        self.send_header('Content-Length', '0')
+        self.send_header('Content-Length', '67' if status == 304 else '0')
         self.end_headers()
 
     def log_message(self, *args):
@@ -58,6 +91,15 @@ def start():
 def stop(pair):
     server, thread = pair
     server.shutdown()
+    # Closing a listener alone leaves HTTP/1.1 keep-alive connections serving.
+    with server.connection_lock:
+        connections = list(server.connections)
+    for connection in connections:
+        try:
+            connection.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        connection.close()
     server.server_close()
     thread.join()
 
@@ -99,6 +141,12 @@ try:
     wait(launch())
     assert any(not pulse and status == 304 for pulse, status, _ in observed)
     resumed(observed)
+    for invalid_metadata in ({'type': 'currentwindow'}, {}, b'not JSON'):
+        metadata = invalid_metadata
+        observed.clear()
+        wait(launch(8))
+        assert observed and not any(pulse for pulse, _, _ in observed), 'invalid bucket must not receive heartbeats'
+    metadata = {'type': 'app.editor.activity'}
     observed.clear()
     reject_creation = True
     reject_heartbeat = 2
@@ -151,4 +199,4 @@ finally:
         process.kill()
         process.wait()
 
-print('PASS first creation, retained-bucket producer restart, creation/heartbeat failures, late AW startup and server restart; heartbeats resume')
+print('PASS first creation, bodyless 304 producer restart, incompatible/malformed metadata rejection, creation/heartbeat failures, late AW startup and server restart; heartbeats resume')

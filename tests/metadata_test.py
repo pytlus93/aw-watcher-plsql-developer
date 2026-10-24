@@ -9,6 +9,6 @@ for arg in sys.argv[1:]:
     dll.About.restype = ctypes.c_char_p
     assert dll.PlugInName() == b'ActivityTracker'
     about = dll.About()
-    assert b'1.3.1' in about
-    assert b'https://github.com/pytlus93/aw-watcher-plsql' in about
+    assert b'1.4.0' in about
+    assert b'https://github.com/pytlus93/aw-watcher-plsql-developer' in about
     print('PASS SDK identity and About metadata:', arg)

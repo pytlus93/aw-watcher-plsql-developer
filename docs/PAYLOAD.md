@@ -1,5 +1,11 @@
 # Payload contract and privacy controls (1.3)
 
+Release 1.4 adds `testing=0|1` to settings, off when missing. When enabled, the
+default AW port 5600 maps to 5666; a nondefault `awPort` takes precedence. This changes
+no event/history fields or privacy defaults. It does not disable independently
+enabled local history or cloud WakaTime delivery. The repository/package name is
+`aw-watcher-plsql-developer`; existing bucket and host/plugin identities are retained.
+
 ## Official contract and modes
 
 The bucket is `app.editor.activity`. The [official editor contract](https://docs.activitywatch.net/en/latest/buckets-and-events.html#app-editor-activity) describes `file` as a filesystem path with forward slashes, `project` as the cwd path, and `language` as the language name. An AW event has a UTC/RFC3339 `timestamp`, numeric `duration` in seconds and object `data`. Our live observations use duration zero; the server merges heartbeats to derive intervals.
@@ -39,6 +45,12 @@ Title has no application/watcher prefix, replaces controls with spaces, and is c
 The JSONL ledger's schema version, record/session/interval identities, timestamps and completed interval bounds are separate mandatory bookkeeping, not selectable event-context extensions. Disabling `interval_id` in AW data does not disable the ledger's interval identity needed for replay/deduplication. CSV/ICS contain only redacted context; disabled optional CSV columns are omitted and ICS summary is neutral Activity. The raw SDK window identity remains internal for foreground interval boundaries even when window_id is disabled.
 
 ## Transport boundaries and presentation order
+
+Before first heartbeat delivery, creation POST must succeed (2xx or creation-only
+304) and a metadata GET must return a JSON object with type `app.editor.activity`.
+Malformed, missing-type or incompatible metadata prevents delivery. Metadata bodies
+are read with a 64 KiB bound; status-only POST responses are not buffered, including
+bodyless 304 with nonzero Content-Length. HTTP redirects are rejected.
 
 Serialization emits official fields first, title next, and enabled extensions last. JSON object order is not semantic. The isolated installed AW server test uses verified memory storage, checks returned keys independently and reports API order. Windows app-data environment overrides do not isolate this installed binary; it may still write its normal testing log/config. The deployed v0.13.2 timeline code explicitly renders editor Filename, Path, Language; it ignores title, project and custom context in that tooltip. Reordering payload keys cannot change this template. Different tooltip content/order needs work in AW's presentation layer, outside this plugin; no GUI display promise is made.
 

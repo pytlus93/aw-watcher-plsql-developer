@@ -62,15 +62,19 @@ static std::string history() {
     for(auto& e:std::filesystem::directory_iterator(path)) if(e.path().extension()==L".jsonl"&&!baseline.count(e.path())) {std::ifstream f(e.path());text.append(std::istreambuf_iterator<char>(f),{});}
     return text;
 }
-int main(int argc,char**) {
+int main(int argc,char** argv) {
     try {
         ownerThread=GetCurrentThreadId();
         auto historyPath=std::filesystem::current_path()/L"synthetic-host-history"/L"plsql-activity-v1";
         if(std::filesystem::exists(historyPath)) for(auto& e:std::filesystem::directory_iterator(historyPath)) baseline.insert(e.path());
-        for(const auto& filename:{L"PLSQLActivity.dll",L"PLSQLActivity-test.dll"}) {
+        for(const auto& filename:{L"ActivityTracker.dll",L"PLSQLActivity-test.dll"}) {
             auto library=LoadLibraryW(filename);check(library!=nullptr,"native DLL loads");
-            for(auto name:{"IdentifyPlugIn","RegisterCallback","OnCreate","OnActivate","OnDeactivate","OnDestroy","OnWindowChange","OnWindowCreated","OnWindowClose","OnWindowConnectionChange","OnConnectionChange","CreateMenuItem","OnMenuClick","Configure","About"}) check(GetProcAddress(library,name)!=nullptr,"undecorated export exists");
+            for(auto name:{"BeforeExecuteWindow","IdentifyPlugIn","PlugInName","RegisterCallback","OnCreate","OnActivate","OnDeactivate","OnDestroy","OnWindowChange","OnWindowCreated","OnWindowClose","OnWindowConnectionChange","OnConnectionChange","CreateMenuItem","OnMenuClick","Configure","About"}) check(GetProcAddress(library,name)!=nullptr,"undecorated export exists");
             FreeLibrary(library);
+        }
+        if(argc>1&&std::string(argv[1])=="--exports-only") {
+            std::cout<<"PASS headless native DLL loading and 17 SDK exports for production/test DLLs\n";
+            return 0;
         }
         auto library=LoadLibraryW(L"PLSQLActivity-test.dll");
         auto invoke=[&](const char* name){reinterpret_cast<void(__cdecl*)()>(GetProcAddress(library,name))();};

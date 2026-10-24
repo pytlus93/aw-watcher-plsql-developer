@@ -10,9 +10,9 @@ Windows and PL/SQL Developer with the matching x64/x86 plugin architecture. Acti
 
 ## Install or upgrade
 
-Version **1.3.1** is distributed as a ZIP; there is no setup installer.
+Version **1.4.0** is distributed as a ZIP; there is no setup installer.
 
-1. Choose the package matching **PL/SQL Developer's architecture**: `ActivityTracker-x64.zip` for a 64-bit IDE or `ActivityTracker-x86.zip` for a 32-bit IDE.
+1. Choose the package matching **PL/SQL Developer's architecture**: `aw-watcher-plsql-developer-1.4.0-x64.zip` for a 64-bit IDE or `aw-watcher-plsql-developer-1.4.0-x86.zip` for a 32-bit IDE.
 2. Close PL/SQL Developer. Extract `ActivityTracker.dll` into its `PlugIns` directory.
 3. If upgrading from the earlier plugin, remove `PLSQLActivity.dll` from that directory to avoid loading both copies.
 4. Restart the IDE and enable **ActivityTracker** in the plug-in manager.
@@ -29,12 +29,20 @@ Start ActivityWatch, then configure the plugin:
 | Enable tracking | On |
 | Pause tracking | Off |
 | Send to local ActivityWatch | On; port `5600` |
+| Testing server | Off; maps default port `5600` to `5666` |
 | Heartbeat | `15` seconds |
 | Idle timeout | `300` seconds |
 | Save local activity files | Off |
 | Send to WakaTime (cloud) | Off |
 
 These are the defaults for a new configuration. Existing settings are preserved. With local activity files off, the plugin does not write activity logs or exports; delivery failures do not enable file logging.
+
+The repository and release-package name is `aw-watcher-plsql-developer`. The host
+plugin remains `ActivityTracker.dll`; the `aw-watcher-plsql_<hostname>` bucket and
+legacy settings paths are preserved for upgrades. Testing and custom-port controls
+are in the host Settings dialog rather than standalone `--testing` / `--port` flags.
+An explicit nondefault port takes precedence over Testing; use a separate AW testing
+server. Testing changes only the AW endpoint, not WakaTime or local history settings.
 
 ### Choose the context to include
 
@@ -86,10 +94,15 @@ python ../../tests/waka_loopback_test.py
 Pop-Location
 ```
 
-Packages are written to `dist/`. Repeat the loopback tests from `build/x86` to validate that architecture. Keep `-SkipUI` for unattended builds; omitting it launches the interactive test harness. No GitHub Actions workflows are required.
+Packages are written to `dist/aw-watcher-plsql-developer-1.4.0-x64.zip` and
+`dist/aw-watcher-plsql-developer-1.4.0-x86.zip`, each with a `.sha256` sidecar.
+Repeat the loopback tests from `build/x86` to validate that architecture. Keep
+`-SkipUI` for unattended builds; omitting it launches the interactive test harness.
+No GitHub Actions workflows are required.
 
 See [SDK integration](docs/SDK.md) and [validation results](docs/VALIDATION.md) for protocol recovery tests, toolchain details and the distinction between synthetic tests and real-host evidence. The revised settings UI and real WakaTime account behavior still need acceptance testing.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE), with the bundled picojson parser's BSD license retained in
+[third-party notices](THIRD-PARTY-NOTICES.md).

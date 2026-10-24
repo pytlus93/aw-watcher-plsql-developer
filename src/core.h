@@ -13,10 +13,12 @@ struct Settings {
     std::array<bool,ExtraFieldCount> extraFields{true,true,true,true,true,false,false,false,false,true,true};
     bool enabled = true, paused = false, files = true, objects = true, connection = true;
     bool history = false, csv = false, ics = false, aw = true, waka = false;
+    bool testing = false;
     std::string wakaKey;
     int heartbeat = 15, idle = 300, rotationMB = 8, retentionDays = 90, awPort = 5600;
     std::filesystem::path directory;
     void validate() const;
+    int effectiveAwPort() const { return testing && awPort == 5600 ? 5666 : awPort; }
 };
 struct Context {
     std::string window, file, objectType, owner, objectName, connection;

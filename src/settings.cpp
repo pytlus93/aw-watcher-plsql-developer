@@ -89,7 +89,8 @@ activity::Settings loadSettings() {
     s.history=integer(L"history",0)!=0;s.csv=integer(L"csv",0)!=0;s.ics=integer(L"ics",0)!=0;s.aw=integer(L"aw",1)!=0;
     s.waka=integer(L"waka",0)!=0;s.wakaKey=loadKey();
     s.heartbeat=integer(L"heartbeat",15);s.idle=integer(L"idle",300);s.rotationMB=integer(L"rotationMB",8);
-    s.retentionDays=integer(L"retentionDays",90);s.awPort=integer(L"awPort",5600);s.validate();return s;
+    s.retentionDays=integer(L"retentionDays",90);s.awPort=integer(L"awPort",5600);
+    s.testing=integer(L"testing",0)!=0;s.validate();return s;
 }
 activity::Settings defaultSettings() {
     activity::Settings s;s.directory=configuration().parent_path()/L"history";return s;
@@ -102,6 +103,7 @@ void saveSettings(const activity::Settings& s) {
     add(L"enabled",s.enabled);add(L"paused",s.paused);add(L"files",s.files);add(L"objects",s.objects);add(L"connection",s.connection);
     add(L"csv",s.csv);add(L"ics",s.ics);add(L"aw",s.aw);add(L"heartbeat",s.heartbeat);add(L"idle",s.idle);
     add(L"rotationMB",s.rotationMB);add(L"retentionDays",s.retentionDays);add(L"awPort",s.awPort);
+    add(L"testing",s.testing);
     add(L"history",s.history);add(L"waka",s.waka);
     text+=std::wstring(L"payloadMode=")+(s.extended?L"extended":L"strict")+L"\r\n";
     for(int i=0;i<activity::ExtraFieldCount;i++) add(wide("field_"+std::string(activity::extraFieldNames[i])).c_str(),s.extraFields[i]);
@@ -133,6 +135,7 @@ static INT_PTR CALLBACK dialog(HWND d,UINT msg,WPARAM w,LPARAM l) {
         for(int i=0;i<8;i++) CheckDlgButton(d,120+i,checks[i]?BST_CHECKED:BST_UNCHECKED);
         CheckDlgButton(d,128,s->history?BST_CHECKED:BST_UNCHECKED);CheckDlgButton(d,129,s->waka?BST_CHECKED:BST_UNCHECKED);
         CheckDlgButton(d,131,s->extended?BST_CHECKED:BST_UNCHECKED);
+        CheckDlgButton(d,132,s->testing?BST_CHECKED:BST_UNCHECKED);
         for(int i=0;i<activity::ExtraFieldCount;i++) CheckDlgButton(d,140+i,s->extraFields[i]?BST_CHECKED:BST_UNCHECKED);
         SetDlgItemTextW(d,130,wide(s->wakaKey).c_str());enableFields(d);
         return TRUE;
@@ -149,6 +152,7 @@ static INT_PTR CALLBACK dialog(HWND d,UINT msg,WPARAM w,LPARAM l) {
             for(int i=0;i<8;i++) *checks[i]=IsDlgButtonChecked(d,120+i)==BST_CHECKED;
             candidate.history=IsDlgButtonChecked(d,128)==BST_CHECKED;candidate.waka=IsDlgButtonChecked(d,129)==BST_CHECKED;
             candidate.extended=IsDlgButtonChecked(d,131)==BST_CHECKED;
+            candidate.testing=IsDlgButtonChecked(d,132)==BST_CHECKED;
             for(int i=0;i<activity::ExtraFieldCount;i++) candidate.extraFields[i]=IsDlgButtonChecked(d,140+i)==BST_CHECKED;
             candidate.wakaKey=utf8(field(d,130));
             if(candidate.waka&&(candidate.wakaKey.empty()||candidate.wakaKey.size()>256||candidate.wakaKey.find_first_of("\r\n\t ")!=std::string::npos))

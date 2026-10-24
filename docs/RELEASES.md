@@ -1,5 +1,22 @@
 # Release notes
 
+## 1.4.0 — 2026-10-24
+
+- Rename the repository and versioned release packages to `aw-watcher-plsql-developer`.
+- Add a Testing server setting: default port 5600 maps to 5666; a nondefault port
+  takes precedence. Existing configurations retain testing off.
+- Preserve `ActivityTracker.dll`, SDK update identity, the existing AW bucket,
+  configuration/credential paths and privacy defaults.
+- Strengthen synthetic HTTP/1.1 regressions with bodyless 304 responses advertising
+  Content-Length: 67, including producer restart and subsequent heartbeat delivery.
+- Derive ZIP names from DLL version metadata, verify versions and add SHA256 sidecars.
+- Verify the existing bucket's JSON metadata is `app.editor.activity` before sending
+  heartbeats; reject incompatible, missing-type and malformed metadata.
+- Add a noninteractive SDK export check for both architectures; `-SkipUI` continues
+  to avoid opening the settings/host UI harness.
+
+No automatic update feed or vendor registration is enabled by this release.
+
 ## 1.3.1
 
 Adds Windows DLL version metadata (1.3.1.0), the stable SDK update identity ActivityTracker, and the GitHub project URL in About. No automatic download or installation is performed.

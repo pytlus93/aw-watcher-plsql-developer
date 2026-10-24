@@ -45,7 +45,7 @@ void startWorker() {
     failed=false;auto config=settings;
     writer=std::thread([config] {
         try {
-            Engine engine(config);AW aw(config.awPort,config.extended&&config.extraFields[DeliverySegmentId]);
+            Engine engine(config);AW aw(config.effectiveAwPort(),config.extended&&config.extraFields[DeliverySegmentId]);
             std::unique_ptr<WakaTime> waka;
             if(config.waka&&!config.wakaKey.empty()) waka=std::make_unique<WakaTime>(config.wakaKey);
             if(waka) engine.contextDelivery=[&](int64_t time,const Context& context){waka->send(time,context);};
@@ -198,7 +198,7 @@ char* __cdecl CreateMenuItem(int index) {
 }
 void __cdecl OnMenuClick(int index) {if(index==2) configure();}
 void __cdecl Configure() {configure();}
-char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.3.1\nhttps://github.com/pytlus93/aw-watcher-plsql\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
+char* __cdecl About() {return const_cast<char*>("ActivityTracker 1.4.0\nhttps://github.com/pytlus93/aw-watcher-plsql-developer\nActivityWatch and optional WakaTime delivery. Local activity files are optional and default off.\nSQL contents and database credentials are never sent or logged.");}
 }
 BOOL WINAPI DllMain(HINSTANCE instance,DWORD reason,LPVOID) {
     if(reason==DLL_PROCESS_ATTACH) moduleInstance=instance;return TRUE;

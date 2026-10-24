@@ -1,0 +1,2 @@
+# Preserve the vendored upstream header byte-for-byte, including its whitespace.
+src/third_party/picojson.h -text -whitespace

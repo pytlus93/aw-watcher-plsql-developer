@@ -1,5 +1,57 @@
 # Validation evidence (historical and current)
 
+## Version 1.4.0 — 2026-10-24
+
+The repository/checkout and release-package prefix are now
+`aw-watcher-plsql-developer`. GitHub visibility remains private. Production host
+identity `ActivityTracker.dll`, SDK update identity, existing `aw-watcher-plsql`
+bucket IDs, settings/credential locations and collection defaults are retained.
+FileVersion/ProductVersion and About are 1.4.0 (Windows resource 1.4.0.0).
+
+Testing server is a new host setting, off when absent. It maps the default AW port
+5600 to 5666; a nondefault port takes precedence. It changes no event fields or
+other delivery destinations. Default, testing/custom precedence, persistence and
+legacy migration are covered by the settings tests. The revised settings resource
+compiles; interactive layout, DPI and checkbox acceptance have not been performed.
+
+MSVC x64/x86 production/test builds pass with C++17, /W4 /WX and static CRT,
+99 core assertions and 24 headless settings assertions per architecture. The
+`-SkipUI` path now loads production/test DLLs and verifies all 17 SDK exports
+without activating the plugin, registering callbacks or opening windows. It also
+corrects the harness's stale production filename. The x64 Python metadata check
+confirms SDK identity and About version/project URL without host activation.
+
+Both architectures pass loopback delivery (8 assertions), extended and strict
+recovery, and mock WakaTime authentication/retry/throttle/privacy suites. Recovery
+fixtures use HTTP/1.1 and bodyless 304 with Content-Length: 67, including retained
+bucket producer restart followed by actual heartbeat receipt. Heartbeat 304 and
+genuine creation/heartbeat failures remain errors. Metadata GET now validates a
+bounded JSON response before delivery; wrong type, missing type and malformed JSON
+are rejected. picojson 1.3.0 is vendored with BSD notices in source and packages.
+
+The initial HTTP/1.1 fixture shutdown closed only its listening socket, allowing
+accepted keep-alive connections to keep serving and invalidating the intended
+outage. The fixture now closes accepted sockets too; final suites confirm an actual
+failed delivery and resumed heartbeats. Expected client-close socket exceptions
+are handled by the test server. An extra artifact-parser invocation lacked its
+required directory argument and was not a pass; no interactive host-artifact run
+was performed or claimed for this release.
+
+Both architectures also pass the isolated installed AW v0.13.2 memory-storage
+test: synthetic strict events, abrupt harness exit, child-server restart, snapshot
+rehydration, preserved gap, resumed positive duration, intentional pause and failed
+harness launch. These tests stop only their own child processes on port 56663.
+They do not establish compatibility with the production Rust server or real IDE
+restart/login, GUI, Credential Manager or WakaTime accounts. The installed Python
+server may use its normal Windows testing config/log paths; memory storage is
+explicitly verified and production storage is untouched.
+
+Release ZIP staging is recreated, versions are verified and SHA256 sidecars are
+written. Packages include only the production DLL, documentation, project license
+and third-party notices. No test DLLs/executables or private settings/history are
+distributed. No live plugin replacement, production restart, reboot, cloud call,
+vendor update registration, push or release publication was performed.
+
 ## Version 1.1 — 2026-10-05
 
 Both x64 and x86 production DLLs and test DLLs build with MSVC 14.51.36231, C++17, /W4 /WX, static CRT and Windows SDK resources. No dependencies were installed.

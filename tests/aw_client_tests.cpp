@@ -11,7 +11,7 @@ int main(int argc,char** argv) {
         s.paused=argc>1&&std::string(argv[1])=="--paused";
         saveSettings(s);auto loaded=loadSettings();
         if(!loaded.aw||loaded.awPort!=s.awPort) throw std::runtime_error("AW settings did not persist");
-        activity::AW aw(loaded.awPort,loaded.extended&&loaded.extraFields[activity::DeliverySegmentId]);activity::Engine engine(loaded);
+        activity::AW aw(loaded.effectiveAwPort(),loaded.extended&&loaded.extraFields[activity::DeliverySegmentId]);activity::Engine engine(loaded);
         engine.heartbeatDelivery=[&](const std::string& body){if(!aw.send(body,3,engine.deliveryBoundary)) std::cout<<"Synthetic AW delivery failed\n"<<std::flush;};
         activity::Context c;c.window="synthetic-window";c.windowType=1;c.connection="SYNTHETIC_ALIAS";
         auto now=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
